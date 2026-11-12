@@ -4,7 +4,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Bungee&family=Rye&family=Rubik:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@800&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Bungee&family=Cherry+Swash:wght@700&family=Rye&family=Rubik:wght@400;500&display=swap">
 <style>
 /* Layout: one plain sheet with a big hand-set title and a grid of game tiles; picking a tile opens the game full screen under a slim back bar. */
 :root {
@@ -64,6 +64,9 @@ h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
 .t-pig .name { font-family: "Rye", Georgia, serif; color: #e8b04a; font-size: 26px; }
 .t-pig .tags i { background: rgba(232,176,74,.18); }
 .t-kart { --t-bg: #2a2275; --t-fg: #ffffff; }
+.t-regne { --t-bg: #2a2160; --t-fg: #fff8ec; }
+.t-regne .name { font-family: "Cherry Swash", Georgia, serif; font-weight: 700; color: #ffd23f; text-shadow: 0 2px 0 #8a3a00; }
+.t-regne .tags i { background: rgba(255,210,63,.16); }
 .t-kart .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffd23f; text-shadow: 2px 2px 0 #ff3d6e; }
 
 footer { text-align: center; color: var(--muted); font-size: 13px; }
@@ -95,7 +98,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
 <main class="home" id="home">
   <header>
     <h1 aria-label="Legepladsen"><span>Le</span><span>ge</span><span>plad</span><span>sen</span></h1>
-    <p class="lead">Tre små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
+    <p class="lead">Fire små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
   </header>
   <section class="grid" aria-label="Spil">
     <button class="tile t-mouse" type="button" data-game="musefelt">
@@ -122,6 +125,14 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
         <span class="tags"><i>Tastatur</i><i>4 baner</i><i>Online</i><i>Leaderboard</i></span>
       </span>
     </button>
+    <button class="tile t-regne" type="button" data-game="regnekanonen">
+      <span class="art"><canvas data-art="regne" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Regnekanonen</span>
+        <span class="desc">Skyd kuglen med det rigtige svar i en eventyrskov. Uglen Professor Hu hjælper dig gennem 20 levels i plus, minus og lidt gange.</span>
+        <span class="tags"><i>Mus eller touch</i><i>7–8 år</i><i>20 levels</i><i>Butik</i></span>
+      </span>
+    </button>
   </section>
   <footer>Tryk på et spil for at åbne det. Tilbage-knappen øverst fører dig hertil igen.</footer>
 </main>
@@ -141,6 +152,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
     'musefelt': { name: 'Musefelt', src: 'games/musefelt.html' },
     'piggy-smash': { name: 'Piggy Smash', src: 'games/piggy-smash.html' },
     'kart-kaos': { name: 'Kart Kaos', src: 'games/kart-kaos.html' },
+    'regnekanonen': { name: 'Regnekanonen', src: 'games/regnekanonen.html' },
   };
   const home = document.getElementById('home'), player = document.getElementById('player');
   const frame = document.getElementById('frame'), nameEl = document.getElementById('gameName');
@@ -249,7 +261,38 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
     const by = hor - H * .3 + Math.sin(t * 2.5) * 4, bx = W * .78;
     g.fillStyle = '#ff3d6e'; g.fillRect(bx - 14 * k, by - 14 * k, 28 * k, 28 * k); g.fillStyle = '#fff'; g.fillText('?', bx, by + 8 * k);
   }
-  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart };
+  const balls = [{ x: .2, y: .66, v: 7 }, { x: .4, y: .5, v: 5 }, { x: .6, y: .7, v: 8 }, { x: .8, y: .52, v: 6 }, { x: .5, y: .84, v: 9 }];
+  function drawRegne(c, t) {
+    const [g, W, H] = fit(c);
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#3b2a7a'); sky.addColorStop(1, '#e07a8f');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(255,255,255,.7)'; for (let i = 0; i < 40; i++) g.fillRect((i * 97.3) % W, (i * 41.9) % (H * .5), 1.5, 1.5);
+    const mg = g.createRadialGradient(W * .84, H * .2, 0, W * .84, H * .2, H * .3); mg.addColorStop(0, 'rgba(255,243,196,.6)'); mg.addColorStop(1, 'rgba(255,243,196,0)');
+    g.fillStyle = mg; g.fillRect(0, 0, W, H); g.fillStyle = '#fff3c4'; g.beginPath(); g.arc(W * .84, H * .2, H * .07, 0, 6.28); g.fill();
+    g.fillStyle = '#5b4a9e'; g.beginPath(); g.moveTo(0, H);
+    for (let x = 0; x <= W; x += 6) g.lineTo(x, H * .62 - Math.abs(Math.sin(x * .021)) * H * .16); g.lineTo(W, H); g.fill();
+    g.fillStyle = '#1c1640';
+    for (let i = 0; i < 16; i++) { const x = i / 15 * W, h = H * (.18 + (i * 7 % 5) * .03); g.beginPath(); g.moveTo(x, H - h - 10); g.lineTo(x - h * .3, H); g.lineTo(x + h * .3, H); g.fill(); }
+    const k = Math.min(W, H) / 200, r = 17 * k;
+    g.font = `800 ${Math.round(18 * k)}px "Baloo 2", sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    balls.forEach((b, i) => {
+      const x = b.x * W, y = b.y * H + (reduce ? 0 : Math.sin(t * 2 + i) * 3), lit = b.v === 7 && Math.sin(t * 1.5) > .3;
+      const gr = g.createRadialGradient(x - r * .35, y - r * .4, r * .1, x, y, r); gr.addColorStop(0, '#fff'); gr.addColorStop(.22, lit ? '#ff8a1f' : '#4a8dff'); gr.addColorStop(1, lit ? '#8a3a00' : '#1d3d8f');
+      if (lit) { g.shadowColor = '#ffb21f'; g.shadowBlur = 18; }
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 6.28); g.fill(); g.shadowBlur = 0;
+      g.lineWidth = 3 * k; g.strokeStyle = 'rgba(0,0,0,.4)'; g.strokeText(b.v, x, y + k); g.fillStyle = '#fff'; g.fillText(b.v, x, y + k);
+    });
+    const sw = 120 * k, sh = 34 * k, sx = W * .06, sy = H * .1 + (reduce ? 0 : Math.sin(t * 1.2) * 2);
+    g.strokeStyle = '#c9a376'; g.lineWidth = 2; g.beginPath(); g.moveTo(sx + sw * .2, 0); g.lineTo(sx + sw * .2, sy); g.moveTo(sx + sw * .8, 0); g.lineTo(sx + sw * .8, sy); g.stroke();
+    const wg = g.createLinearGradient(0, sy, 0, sy + sh); wg.addColorStop(0, '#b07a43'); wg.addColorStop(1, '#7a4a22');
+    g.fillStyle = wg; g.fillRect(sx, sy, sw, sh); g.strokeStyle = '#4a2a10'; g.lineWidth = 2; g.strokeRect(sx, sy, sw, sh);
+    g.font = `800 ${Math.round(20 * k)}px "Baloo 2", sans-serif`; g.lineWidth = 3 * k; g.strokeStyle = '#3a2410'; g.strokeText('3 + 4 = ?', sx + sw / 2, sy + sh / 2 + k);
+    g.fillStyle = '#fff8ec'; g.fillText('3 + 4 = ?', sx + sw / 2, sy + sh / 2 + k);
+    const cx = W * .5, ang = Math.PI / 2 + Math.sin(t * .8) * .5;
+    g.save(); g.translate(cx, 0); g.rotate(ang); g.fillStyle = '#c7d3e3'; g.fillRect(0, -7 * k, 30 * k, 14 * k); g.restore();
+    g.fillStyle = '#5b6b82'; g.beginPath(); g.arc(cx, 0, 14 * k, 0, 6.28); g.fill();
+  }
+  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart, regne: drawRegne };
   function frameArt(now) {
     const t = (now - t0) / 1000;
     for (const c of arts) { try { DRAW[c.dataset.art](c, reduce ? 1 : t); } catch (e) {} }

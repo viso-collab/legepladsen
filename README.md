@@ -1,12 +1,13 @@
 # Legepladsen
 
-Tre små browserspil samlet på én side.
+Fire små browserspil samlet på én side.
 
 | Spil | Fil | Styring |
 |---|---|---|
 | **Musefelt**: seks interaktive lærreder (ildfluer, fisk, kometer, bobleplast …) | `games/musefelt.html` | Mus eller touch |
 | **Piggy Smash**: smash sparegrise, find våben i kister og byg et skill tree (på engelsk) | `games/piggy-smash.html` | Mus eller touch |
 | **Kart Kaos**: arenakamp i 3D-karts mod bots eller online, med leaderboard | `games/kart-kaos.html` | Tastatur |
+| **Regnekanonen**: skyd kuglen med det rigtige svar i 20 levels plus, minus og lidt gange, med uglen Professor Hu (7–8 år) | `games/regnekanonen.html` | Mus eller touch |
 
 ## Kør lokalt
 
@@ -20,7 +21,7 @@ python3 -m http.server 8000
 
 ## Opdatér spillene
 
-Piggy Smash og Kart Kaos udvikles i deres egne repos ([splinter-gulch](https://github.com/viso-collab/splinter-gulch) og [kaos-karts](https://github.com/viso-collab/kaos-karts)). Hent de nyeste versioner hertil med:
+Piggy Smash, Kart Kaos og Regnekanonen udvikles i deres egne repos ([splinter-gulch](https://github.com/viso-collab/splinter-gulch), [kaos-karts](https://github.com/viso-collab/kaos-karts) og [gangetabel-kanonen](https://github.com/viso-collab/gangetabel-kanonen)). Hent de nyeste versioner hertil med:
 
 ```sh
 python3 tools/sync_games.py
