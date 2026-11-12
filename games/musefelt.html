@@ -1,0 +1,1449 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Musefelt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed canvas, one floating control dock at the bottom. Single dark look by choice: light drawn on a night ground, blue controls. */
+:root {
+  --ground: #0b0d14;
+  --panel: rgba(20, 23, 34, 0.82);
+  --line: rgba(160, 170, 210, 0.18);
+  --ink: #eef0f8;
+  --muted: #8f96b3;
+  --accent: #3d7bff;
+  --on-accent: #ffffff;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--display);
+  overflow: hidden;
+}
+canvas {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+.brand {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 18px);
+  left: max(18px, env(safe-area-inset-left, 0px));
+  display: flex; flex-direction: column; gap: 2px;
+  pointer-events: none;
+}
+.brand h1 { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -0.01em; }
+.brand p { margin: 0; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); letter-spacing: 0.04em; }
+.dock {
+  position: fixed;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  width: min(880px, calc(100% - 32px));
+  background: var(--panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.modes { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.mode {
+  appearance: none; border: 1px solid transparent; border-radius: 12px;
+  background: transparent; color: var(--muted);
+  font: inherit; font-weight: 500; font-size: 0.95rem;
+  padding: 10px 6px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: background .15s, color .15s;
+}
+.mode small { font-family: var(--mono); font-size: 0.66rem; opacity: 0.8; }
+.mode:hover { color: var(--ink); background: rgba(61, 123, 255, 0.12); }
+.mode[aria-pressed="true"] { color: var(--on-accent); background: var(--accent); }
+.mode:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 6px 2px;
+  font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+}
+.row label { white-space: nowrap; letter-spacing: 0.04em; }
+.row input[type="range"] { flex: 1; min-width: 0; accent-color: var(--accent); }
+.row output { width: 3ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 500; }
+.hud-toggle {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 10px; border-radius: 10px;
+  background: var(--panel); border: 1px solid var(--line);
+  font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+  cursor: pointer; user-select: none; z-index: 5;
+  opacity: 0.85;
+}
+.hud-toggle:hover { opacity: 1; color: var(--ink); }
+.hud-toggle input { accent-color: var(--accent); margin: 0; }
+body.hud-hidden .dock, body.hud-hidden .brand { display: none; }
+body.hud-hidden .hud-toggle { opacity: 0.45; }
+[hidden] { display: none !important; }
+.score {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
+  left: 50%; transform: translateX(-50%);
+  display: flex; align-items: baseline; gap: 8px;
+  padding: 6px 14px; border-radius: 12px;
+  background: var(--panel); border: 1px solid var(--line);
+  font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+  white-space: nowrap; pointer-events: none; z-index: 4;
+}
+.score b { font-family: var(--display); font-size: 1.25rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.score .goal { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.score .goal i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+@media (max-width: 600px) { .score { top: calc(env(safe-area-inset-top, 0px) + 62px); } }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-family: var(--mono); font-size: 0.68rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.hint { text-align: center; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); padding-bottom: 2px; }
+@media (max-width: 760px) {
+  .modes { grid-template-columns: repeat(3, 1fr); }
+  .mode { font-size: 0.85rem; padding: 8px 6px; }
+}
+</style>
+
+<canvas id="c"></canvas>
+
+<div class="brand">
+  <h1>Musefelt</h1>
+  <p>Bevæg musen · klik for ekstra effekt</p>
+</div>
+
+<div class="score" id="score"><b id="scoreVal">0</b><span id="scoreLbl"></span><span class="goal" id="goal" hidden>· fang <i id="goalDot"></i></span><span>· rekord <span id="bestVal">0</span></span></div>
+<label class="hud-toggle" for="hideHud"><input type="checkbox" id="hideHud"> Skjul panel</label>
+
+<div class="dock" role="group" aria-label="Effekter">
+  <div class="modes">
+    <button class="mode" id="m-paint" data-mode="paint" aria-pressed="true">Maling<small>tast 1</small></button>
+    <button class="mode" id="m-swarm" data-mode="swarm" aria-pressed="false">Partikelsværm<small>tast 2</small></button>
+    <button class="mode" id="m-ripple" data-mode="ripple" aria-pressed="false">Krusninger<small>tast 3</small></button>
+    <button class="mode" id="m-stars" data-mode="stars" aria-pressed="false">Stjerner<small>tast 4</small></button>
+    <button class="mode" id="m-ink" data-mode="ink" aria-pressed="false">Blæk<small>tast 5</small></button>
+    <button class="mode" id="m-wrap" data-mode="wrap" aria-pressed="false">Bobleplast<small>tast 6</small></button>
+  </div>
+  <div class="row">
+    <label for="strength">Styrke</label>
+    <input type="range" id="strength" min="1" max="10" value="5">
+    <output id="strengthOut" for="strength">5</output>
+  </div>
+  <div class="legend" id="legend" hidden>
+    <span><i style="background:hsl(45,65%,62%)"></i>Guld: kædereaktion</span>
+    <span><i style="background:hsl(2,60%,58%)"></i>Rød: bombe</span>
+    <span><i style="background:hsl(130,50%,55%)"></i>Grøn: hele rækken</span>
+    <span><i style="background:hsl(285,50%,62%)"></i>Lilla: tryller nye frem</span>
+    <span><i style="background:hsl(215,70%,62%)"></i>Blå: kalder hamsterne</span>
+  </div>
+  <div class="hint" id="hint">Klik på en bille med farven øverst for point. Gyldne biller giver 5. Klik et tomt sted for en farvebølge.</div>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const hintEl = document.getElementById('hint');
+  const strengthEl = document.getElementById('strength');
+  const strengthOut = document.getElementById('strengthOut');
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const BG = '#0b0d14';
+  const fade = a => `rgba(11,13,20,${a})`;
+
+  let W = 0, H = 0, DPR = 1;
+  let strength = 5;
+  const mouse = { x: -9999, y: -9999, px: -9999, py: -9999, vx: 0, vy: 0, down: false, active: false };
+  let t = 0;
+
+  const HINTS = {
+    paint: 'Klik på en bille med farven øverst for point. Gyldne biller giver 5. Klik et tomt sted for en farvebølge.',
+    swarm: 'Klik på ildfluer for at fange dem, og før kæden hen til glasset. Jo længere kæde, jo flere point.',
+    ripple: 'Klik tæt på fiskene for at skyde dem afsted. Ram andre fisk for kædepoint. Guldfisk giver 5 ekstra.',
+    stars: 'Træk i en komet og slip. Ram de gyldne stjerner, flere i ét skud giver bonus. Kometer der støder sammen giver 3.',
+    ink: 'Klik for at drysse foder. Gyldent foder giver 3. En blæksprutte der har spist 6 gange, får en unge.',
+    wrap: 'Klik og træk for at poppe. Farvede bobler gør noget særligt. Klik på en hamster, så hopper den. M: lyd.'
+  };
+
+  /* ---------- Effekt 1: Maling ---------- */
+  // billerne maler farvebånd. Ved musen lyser båndene op, svulmer og skifter farve.
+  // Klik sender en farvebølge ud, der maler båndene om. Hold nede, så samles billerne om musen.
+  const paint = {
+    amp: 0, waves: [],
+    init() { this.amp = 0; this.waves = []; this.target = null; this.combo = 0; this.goldT = 200; },
+    R() { return 90 + strength * 12; },
+    target: null, goldT: 0,
+    pickTarget() {
+      const hs = painters.list.filter(c => !c.gold).map(c => c.hue);
+      this.target = hs.length ? hs[Math.floor(Math.random() * hs.length)] : null;
+      game.hud();
+    },
+    // klik: ram en bille med målfarven for point; guldbiller giver 5. Rammer man ingen bille, kommer en farvebølge
+    click(x, y) {
+      let best = null, bd = 26 + strength;
+      for (const c of painters.list) { const d = Math.hypot(c.x - x, c.y - y); if (d < bd) { bd = d; best = c; } }
+      if (!best) { this.wave(x, y); return; }
+      if (best.gold) {
+        best.gold = false; best.hue = PAINT_HUES[Math.floor(Math.random() * PAINT_HUES.length)];
+        this.combo++;
+        game.add(5, best.x, best.y - 20, 45, '+5 guld!');
+        this.wave(best.x, best.y);
+      } else if (best.hue === this.target) {
+        this.combo++;
+        const pts = 1 + Math.floor(this.combo / 3);
+        game.add(pts, best.x, best.y - 20, best.hue, this.combo >= 3 ? `+${pts}  ×${this.combo}` : '+' + pts);
+        best.hue = PAINT_HUES[Math.floor(Math.random() * PAINT_HUES.length)];
+        best.fear = 0; best.zoom = 1;
+        this.pickTarget();
+      } else {
+        this.combo = 0;
+        game.say(best.x, best.y - 20, 'forkert farve', 0);
+      }
+    },
+    tick() {
+      if (this.target == null || (Math.random() < 0.02 && !painters.list.some(c => c.hue === this.target && !c.gold))) this.pickTarget();
+      // en gang imellem bliver en bille gylden i nogle sekunder
+      if (--this.goldT <= 0) {
+        this.goldT = 500 + Math.random() * 400;
+        const c = painters.list[Math.floor(Math.random() * painters.list.length)];
+        if (c) { c.gold = 360; }
+      }
+      for (const c of painters.list) if (c.gold && --c.gold <= 0) c.gold = false;
+    },
+    combo: 0,
+    wave(x, y) {
+      // bølgen drejer alle farver lige meget, så båndene beholder deres forskellighed
+      this.waves.push({ x, y, r: 0, id: Math.random(), shift: 70 + Math.random() * 150, hue: PAINT_HUES[Math.floor(Math.random() * PAINT_HUES.length)] });
+    },
+    trail(c) {
+      if (!c.trail) c.trail = [];
+      const w = c.w0 * (0.2 + 0.8 * (0.5 + 0.5 * Math.sin(c.ph * 0.22 + c.seed)));
+      const last = c.trail[c.trail.length - 1];
+      if (!last || Math.hypot(c.x - last.x, c.y - last.y) >= 4) c.trail.push({ x: c.x, y: c.y, w, h: c.gold ? 45 : c.hue });
+      if (c.trail.length > 450) c.trail.shift();
+    },
+    step() {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+      this.amp += ((mouse.active ? 1 : 0) - this.amp) * 0.12;
+      const R = this.R(), maxR = Math.hypot(W, H);
+      // farvebølger: alt hvad ringen rammer, får ringens farve
+      for (const wv of this.waves) {
+        wv.r += 9;
+        for (const c of painters.list) {
+          if (c.wid !== wv.id && Math.abs(Math.hypot(c.x - wv.x, c.y - wv.y) - wv.r) < 12) { c.hue = (c.hue + wv.shift) % 360; c.wid = wv.id; }
+          if (c.trail) for (const q of c.trail) {
+            const dx = q.x - wv.x, dy = q.y - wv.y;
+            const d = Math.sqrt(dx * dx + dy * dy);
+            if (q.wid !== wv.id && d > wv.r - 12 && d < wv.r + 12) { q.h = (q.h + wv.shift) % 360; q.wid = wv.id; }
+          }
+        }
+        ctx.strokeStyle = `hsla(${wv.hue},50%,65%,${Math.max(0, 0.5 - wv.r / maxR)})`;
+        ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(wv.x, wv.y, wv.r, 0, Math.PI * 2); ctx.stroke();
+      }
+      this.waves = this.waves.filter(wv => wv.r < maxR);
+      for (const c of painters.list) {
+        const tr = c.trail;
+        if (!tr || tr.length < 2) continue;
+        const n = tr.length, P = new Array(n);
+        for (let i = 0; i < n; i++) {
+          const q = tr[i];
+          const d = Math.hypot(q.x - mouse.x, q.y - mouse.y);
+          const k = Math.max(0, 1 - d / R) * this.amp;
+          P[i] = { x: q.x, y: q.y, w: q.w * (1 + k * 0.8), k, h: q.h };
+        }
+        const N = new Array(n);
+        for (let i = 0; i < n; i++) {
+          const a = P[Math.max(0, i - 1)], b = P[Math.min(n - 1, i + 1)];
+          const tx = b.x - a.x, ty = b.y - a.y, len = Math.hypot(tx, ty) || 1;
+          const wob = P[i].k * 3 * Math.sin(i * 0.6 + t * 9);
+          N[i] = { nx: -ty / len, ny: tx / len, wob };
+        }
+        // båndet tegnes i små stykker, så hvert stykke kan have sin egen farve
+        for (let i0 = 0; i0 < n - 1; i0 += 8) {
+          const i1 = Math.min(n - 1, i0 + 9), mid = P[(i0 + i1) >> 1];
+          ctx.fillStyle = `hsl(${mid.h + mid.k * 60},${45 + mid.k * 15}%,${52 + mid.k * 16}%)`;
+          ctx.beginPath();
+          for (let i = i0; i <= i1; i++) {
+            const o = P[i].w / 2;
+            const x = P[i].x + N[i].nx * (o + N[i].wob), y = P[i].y + N[i].ny * (o + N[i].wob);
+            i === i0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          }
+          for (let i = i1; i >= i0; i--) {
+            const o = P[i].w / 2;
+            ctx.lineTo(P[i].x - N[i].nx * (o - N[i].wob), P[i].y - N[i].ny * (o - N[i].wob));
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+        const e0 = P[0], e1 = P[n - 1];
+        ctx.fillStyle = `hsl(${e0.h},45%,52%)`;
+        ctx.beginPath(); ctx.arc(e0.x, e0.y, e0.w / 2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `hsl(${e1.h + e1.k * 60},${45 + e1.k * 15}%,${52 + e1.k * 16}%)`;
+        ctx.beginPath(); ctx.arc(e1.x, e1.y, e1.w / 2, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  };
+
+  /* ---------- Effekt 2: Partikelsværm ---------- */
+  const swarm = {
+    ps: [],
+    init() {
+      const n = Math.min(2600, Math.round(W * H / 520));
+      this.ps = [];
+      for (let i = 0; i < n; i++) {
+        this.ps.push({ x: Math.random() * W, y: Math.random() * H, vx: 0, vy: 0, a: Math.random() * Math.PI * 2, orb: 40 + Math.random() * 150, flash: 0 });
+      }
+    },
+    step() {
+      ctx.fillStyle = fade(0.22);
+      ctx.fillRect(0, 0, W, H);
+      const force = 0.15 + strength * 0.09;
+      const galaxy = isReal() && !mouse.down && mouse.still > 45;
+      const boom = clickPulse;
+      ctx.globalCompositeOperation = 'lighter';
+      for (const p of this.ps) {
+        // klik: et brag der kaster partiklerne ud og får dem til at gløde varmt
+        if (boom) {
+          const dx = p.x - boom.x, dy = p.y - boom.y, d = Math.hypot(dx, dy) || 1;
+          if (d < 320) { const f = (1 - d / 320) * (10 + strength); p.vx += dx / d * f; p.vy += dy / d * f; p.flash = 1; }
+        }
+        p.flash *= 0.97;
+        p.a += (Math.random() - 0.5) * 0.3;
+        p.vx += Math.cos(p.a) * 0.04; p.vy += Math.sin(p.a) * 0.04;
+        if (mouse.active) {
+          const dx = mouse.x - p.x, dy = mouse.y - p.y;
+          const d2 = dx * dx + dy * dy + 400;
+          const d = Math.sqrt(d2);
+          if (galaxy) {
+            // musen står stille: partiklerne lægger sig i kredsløb som en galakse
+            const rad = (d - p.orb) / 60;
+            p.vx += dx / d * rad * 0.5 * force - dy / d * 0.35;
+            p.vy += dy / d * rad * 0.5 * force + dx / d * 0.35;
+          } else if (mouse.down) {
+            const f = Math.min(6, 9000 * force / d2);
+            p.vx -= dx / d * f * 2.2; p.vy -= dy / d * f * 2.2;
+          } else {
+            const f = Math.min(1.2, 260 * force / d);
+            p.vx += dx / d * f * 0.35; p.vy += dy / d * f * 0.35;
+            p.vx += -dy / d * f * 0.18; p.vy += dx / d * f * 0.18;
+          }
+        }
+        p.vx *= 0.94; p.vy *= 0.94;
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0) p.x += W; else if (p.x > W) p.x -= W;
+        if (p.y < 0) p.y += H; else if (p.y > H) p.y -= H;
+        const sp = Math.min(1, Math.hypot(p.vx, p.vy) / 8);
+        ctx.fillStyle = `hsla(${200 + sp * 110 - p.flash * 170},${40 + sp * 20 + p.flash * 20}%,${55 + sp * 10}%,0.6)`;
+        const s = 1.2 + sp * 1.8;
+        ctx.fillRect(p.x - s / 2, p.y - s / 2, s, s);
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+  };
+
+  /* ---------- Effekt 3: Krusninger ---------- */
+  const ripple = {
+    gap: 18, cols: 0, rows: 0, a: null, b: null,
+    init() {
+      this.gap = W < 500 ? 14 : 18;
+      this.cols = Math.ceil(W / this.gap) + 2;
+      this.rows = Math.ceil(H / this.gap) + 2;
+      this.a = new Float32Array(this.cols * this.rows);
+      this.b = new Float32Array(this.cols * this.rows);
+    },
+    disturb(x, y, amount, radius) {
+      const cx = Math.round(x / this.gap) + 1, cy = Math.round(y / this.gap) + 1;
+      for (let j = -radius; j <= radius; j++) for (let i = -radius; i <= radius; i++) {
+        const gx = cx + i, gy = cy + j;
+        if (gx < 1 || gy < 1 || gx >= this.cols - 1 || gy >= this.rows - 1) continue;
+        const d = Math.hypot(i, j);
+        if (d <= radius) this.a[gy * this.cols + gx] += amount * (1 - d / (radius + 1));
+      }
+    },
+    step() {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+      if (mouse.active) {
+        const sp = Math.min(40, Math.hypot(mouse.vx, mouse.vy));
+        if (sp > 0.5) this.disturb(mouse.x, mouse.y, sp * (0.4 + strength * 0.12), 1);
+        // hold nede: det regner omkring musen
+        if (mouse.down && isReal() && Math.random() < 0.5) {
+          const a = Math.random() * Math.PI * 2, rr = Math.random() * (50 + strength * 8);
+          this.disturb(mouse.x + Math.cos(a) * rr, mouse.y + Math.sin(a) * rr, 60 + strength * 8, 0);
+        }
+      }
+      if (!reduceMotion && Math.random() < 0.02) this.disturb(Math.random() * W, Math.random() * H, 30, 1);
+      const { cols, rows } = this;
+      let a = this.a, b = this.b;
+      for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) {
+        const i = y * cols + x;
+        b[i] = ((a[i - 1] + a[i + 1] + a[i - cols] + a[i + cols]) / 2 - b[i]) * 0.965;
+      }
+      this.a = b; this.b = a; a = this.a;
+      const g = this.gap;
+      for (let y = 1; y < rows - 1; y++) for (let x = 1; x < cols - 1; x++) {
+        const i = y * cols + x;
+        const h = a[i];
+        const gx = a[i + 1] - a[i - 1], gy = a[i + cols] - a[i - cols];
+        const px = (x - 1) * g + gx * 0.35, py = (y - 1) * g + gy * 0.35;
+        const e = Math.min(1, Math.abs(h) / 40);
+        const r = 1.1 + e * g * 0.33;
+        ctx.fillStyle = h >= 0
+          ? `hsla(${200 - e * 20},45%,${32 + e * 32}%,${0.35 + e * 0.5})`
+          : `hsla(${255 + e * 25},35%,${30 + e * 28}%,${0.35 + e * 0.5})`;
+        ctx.fillRect(px - r, py - r, r * 2, r * 2);
+      }
+    }
+  };
+
+  /* ---------- Effekt 4: Stjerner ---------- */
+  const stars = {
+    ps: [], shocks: [], sparks: [],
+    // supernova: en ring der skubber stjernerne udad
+    shock(x, y) { this.shocks.push({ x, y, r: 0, life: 1 }); },
+    newTarget() {
+      const free = this.ps.filter(p => !p.target && p.x > 40 && p.x < W - 40 && p.y > 60 && p.y < H - 190);
+      if (free.length) free[Math.floor(Math.random() * free.length)].target = true;
+    },
+    // klik et tomt sted: en ny stjerne fødes med et glimt
+    born(x, y) {
+      this.ps.push({ x, y, vx: 0, vy: 0, r: 1.4 + Math.random() * 1.4, glow: 1, ph: Math.random() * 10 });
+      if (this.ps.length > 260) this.ps.shift();
+      for (let i = 0; i < 24; i++) {
+        const a = Math.random() * Math.PI * 2, v = 0.5 + Math.random() * 2;
+        this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.8, hue: 45 });
+      }
+    },
+    // gnister når to kometer støder sammen
+    burst(x, y, h1, h2) {
+      for (let i = 0; i < 70 + strength * 6; i++) {
+        const a = Math.random() * Math.PI * 2, v = Math.random() * (3 + strength * 0.4) + 0.5;
+        this.sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 1, hue: Math.random() < 0.5 ? h1 : h2 });
+      }
+    },
+    init() {
+      this.shocks = []; this.sparks = [];
+      setTimeout(() => { for (let i = 0; i < 5; i++) this.newTarget(); }, 0);
+      const n = Math.min(170, Math.round(W * H / 9000));
+      this.ps = [];
+      for (let i = 0; i < n; i++) this.ps.push({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.4, vy: (Math.random() - 0.5) * 0.4,
+        r: 1 + Math.random() * 1.6, glow: 0, ph: Math.random() * 10
+      });
+    },
+    step() {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+      const R = 120 + strength * 18;
+      const link = W < 500 ? 90 : 120;
+      for (const p of this.ps) {
+        if (mouse.active) {
+          const dx = p.x - mouse.x, dy = p.y - mouse.y;
+          const d = Math.hypot(dx, dy) || 1;
+        }
+        for (const sh of this.shocks) {
+          const dx = p.x - sh.x, dy = p.y - sh.y, d = Math.hypot(dx, dy) || 1;
+          if (Math.abs(d - sh.r) < 22) {
+            const f = sh.life * (1.2 + strength * 0.15);
+            p.vx += dx / d * f; p.vy += dy / d * f;
+            p.glow = Math.max(p.glow, sh.life);
+          }
+        }
+        p.glow *= 0.965;
+        p.vx *= 0.97; p.vy *= 0.97;
+        const sp = Math.hypot(p.vx, p.vy);
+        if (sp < 0.15) { p.vx += (Math.random() - 0.5) * 0.05; p.vy += (Math.random() - 0.5) * 0.05; }
+        // stille svæv, så himlen lever af sig selv
+        p.x += Math.sin(t * 0.6 + p.ph) * 0.15; p.y += Math.cos(t * 0.5 + p.ph * 1.3) * 0.15;
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > W) p.vx *= -1;
+        if (p.y < 0 || p.y > H) p.vy *= -1;
+        p.x = Math.max(0, Math.min(W, p.x)); p.y = Math.max(0, Math.min(H, p.y));
+      }
+      ctx.lineWidth = 1;
+      const ps = this.ps;
+      for (let i = 0; i < ps.length; i++) {
+        const p = ps[i];
+        for (let j = i + 1; j < ps.length; j++) {
+          const q = ps[j];
+          const dx = p.x - q.x, dy = p.y - q.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < link * link) {
+            const dd = Math.sqrt(d2) || 1;
+            // stjerner tæt på hinanden glider langsomt fra hinanden, så himlen spreder sig jævnt igen
+            if (dd < 90) {
+              const f = 0.0035 * (1 - dd / 90);
+              p.vx += dx / dd * f; p.vy += dy / dd * f;
+              q.vx -= dx / dd * f; q.vy -= dy / dd * f;
+            }
+            const k = 1 - dd / link;
+            ctx.strokeStyle = `hsla(215,30%,65%,${k * 0.35})`;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+          }
+        }
+        if (mouse.active) {
+          const d = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+          if (d < R * 1.4) {
+            const k = 1 - d / (R * 1.4);
+            ctx.strokeStyle = `hsla(40,45%,70%,${k * 0.5})`;
+            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+          }
+        }
+      }
+      for (const p of ps) {
+        const d = mouse.active ? Math.hypot(p.x - mouse.x, p.y - mouse.y) : 1e9;
+        const e = Math.max(0, 1 - d / (R * 1.4));
+        const gl = Math.min(1, e + p.glow);
+        ctx.fillStyle = `hsla(${215 - gl * 175},${30 + gl * 15}%,${70 + gl * 15}%,${0.7 + gl * 0.3})`;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r + e * 1.5 + p.glow * 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+      for (const p of ps) if (p.target) {
+        ctx.strokeStyle = `hsla(45,70%,70%,${0.6 + 0.3 * Math.sin(t * 5 + p.ph)})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 9 + Math.sin(t * 5 + p.ph) * 2, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = 'hsl(45,70%,72%)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2); ctx.fill();
+      }
+      for (const sh of this.shocks) {
+        sh.r += (sh.big ? 8 : 5) + strength * 0.6;
+        sh.life -= 0.018;
+        ctx.strokeStyle = `hsla(35,45%,75%,${Math.max(0, sh.life) * 0.45})`;
+        ctx.lineWidth = 1 + sh.life * 3;
+        ctx.beginPath(); ctx.arc(sh.x, sh.y, sh.r, 0, Math.PI * 2); ctx.stroke();
+      }
+      this.shocks = this.shocks.filter(sh => sh.life > 0);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const sp of this.sparks) {
+        sp.vx *= 0.96; sp.vy *= 0.96; sp.x += sp.vx; sp.y += sp.vy; sp.life -= 0.015;
+        ctx.fillStyle = `hsla(${sp.hue},50%,${60 + sp.life * 25}%,${Math.max(0, sp.life)})`;
+        ctx.beginPath(); ctx.arc(sp.x, sp.y, 1 + sp.life * 1.6, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+      this.sparks = this.sparks.filter(sp => sp.life > 0);
+    }
+  };
+
+  /* ---------- Effekt 5: Blæk ---------- */
+  const ink = {
+    blobs: [], food: [], hue: 200,
+    init() { this.blobs = []; this.food = []; },
+    add(x, y, vx, vy, size, hue) {
+      this.blobs.push({ x, y, vx, vy, r: size, life: 1, hue: hue ?? this.hue + (Math.random() - 0.5) * 30 });
+      if (this.blobs.length > 700) this.blobs.splice(0, this.blobs.length - 700);
+    },
+    step() {
+      ctx.fillStyle = fade(0.09);
+      ctx.fillRect(0, 0, W, H);
+      this.hue = (this.hue + 0.15) % 360;
+      if (mouse.active) {
+        const sp = Math.min(30, Math.hypot(mouse.vx, mouse.vy));
+        const n = Math.round(sp / 6);
+        for (let i = 0; i < n; i++) {
+          const k = i / Math.max(1, n);
+          this.add(mouse.x - mouse.vx * k, mouse.y - mouse.vy * k,
+                   mouse.vx * 0.08 + (Math.random() - 0.5), mouse.vy * 0.08 + (Math.random() - 0.5),
+                   5 + strength * 1.2);
+        }
+        if (mouse.down) for (let i = 0; i < 3; i++) {
+          const a = Math.random() * Math.PI * 2, v = 1 + Math.random() * (1 + strength * 0.3);
+          this.add(mouse.x, mouse.y, Math.cos(a) * v, Math.sin(a) * v, 10 + strength * 2);
+        }
+      }
+      for (const b of this.blobs) {
+        // blækket flyder i en langsom hvirvel og breder sig ud
+        const sw = Math.sin(b.y * 0.01 + t) * 0.06, cw = Math.cos(b.x * 0.01 - t) * 0.06;
+        b.vx = (b.vx + sw) * 0.97; b.vy = (b.vy + cw) * 0.97;
+        b.x += b.vx; b.y += b.vy;
+        b.r += 0.1; b.life -= 0.008;
+        if (b.life <= 0) continue;
+        const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        g.addColorStop(0, `hsla(${b.hue},45%,60%,${b.life * 0.32})`);
+        g.addColorStop(0.85, `hsla(${b.hue},45%,55%,${b.life * 0.28})`);
+        g.addColorStop(1, `hsla(${b.hue},45%,55%,0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+      }
+      this.blobs = this.blobs.filter(b => b.life > 0);
+      // foder der langsomt synker
+      for (const f of this.food) {
+        f.y += 0.25; f.x += Math.sin(t * 2 + f.ph) * 0.3; f.life -= 0.0015;
+        ctx.fillStyle = f.gold ? `hsla(48,80%,65%,${Math.min(1, f.life * 3)})` : `hsla(45,35%,70%,${Math.min(1, f.life * 3)})`;
+        ctx.beginPath(); ctx.arc(f.x, f.y, f.gold ? 4 : 2.4, 0, Math.PI * 2); ctx.fill();
+      }
+      this.food = this.food.filter(f => f.life > 0 && f.y < H);
+    }
+  };
+
+  /* ---------- Lyd til bobleplast (starter først når man har klikket) ---------- */
+  let audio = null, noiseBuf = null, lastPop = 0, muted = false;
+  function initAudio() {
+    if (audio) return;
+    try {
+      audio = new (window.AudioContext || window.webkitAudioContext)();
+      const len = Math.floor(audio.sampleRate * 0.06);
+      noiseBuf = audio.createBuffer(1, len, audio.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+    } catch (e) { audio = null; }
+  }
+  function popSound(vol) {
+    if (!audio || muted) return;
+    try {
+      const now = audio.currentTime;
+      if (now - lastPop < 0.025) return;
+      lastPop = now;
+      const src = audio.createBufferSource(); src.buffer = noiseBuf;
+      src.playbackRate.value = 0.8 + Math.random() * 0.5;
+      const f = audio.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900 + Math.random() * 900; f.Q.value = 1.3;
+      const g = audio.createGain(); g.gain.value = 0.4 * vol;
+      src.connect(f); f.connect(g); g.connect(audio.destination);
+      src.start();
+    } catch (e) {}
+  }
+
+  /* ---------- Effekt 6: Bobleplast ---------- */
+  // specielle bobler: guld = kædereaktion, rød = bombe, grøn = hele rækken, lilla = magi, blå = kalder hamsterne
+  const KINDS = { gold: { h: 45, sat: 65 }, red: { h: 2, sat: 60 }, green: { h: 130, sat: 50 }, purple: { h: 285, sat: 50 }, blue: { h: 215, sat: 70 } };
+  function rollKind() {
+    const x = Math.random();
+    return x < 0.03 ? 'gold' : x < 0.05 ? 'red' : x < 0.072 ? 'green' : x < 0.088 ? 'purple' : x < 0.104 ? 'blue' : null;
+  }
+  function jumpTo(c, tx, ty) {
+    c.mode = 'jump'; c.sx = c.x; c.sy = c.y; c.k = 0;
+    c.tx = Math.max(20, Math.min(W - 20, tx)); c.ty = Math.max(20, Math.min(H - 20, ty));
+  }
+  const wrap = {
+    cells: [], rings: [], r: 15, full: null, flat: null, last: null,
+    sprite(draw) {
+      const c = document.createElement('canvas');
+      const S = Math.ceil((this.r * 2 + 6) * DPR);
+      c.width = S; c.height = S;
+      const g = c.getContext('2d');
+      g.setTransform(DPR, 0, 0, DPR, 0, 0);
+      draw(g, this.r + 3, this.r);
+      return c;
+    },
+    init() {
+      this.r = W < 500 ? 13 : 16;
+      const r = this.r, gx = r * 2.35, gy = gx * 0.87;
+      this.cells = []; this.rings = []; this.last = null; this.queue = []; this.streaks = []; this.shake = 0; this.combo = 0; this.comboT = 99; this.comboShow = 0;
+      let row = 0;
+      for (let y = r + 6; y < H + r; y += gy, row++)
+        for (let x = r + 6 + (row % 2 ? gx / 2 : 0); x < W + r; x += gx)
+          this.cells.push({ x, y, full: true, anim: 0, press: 0, grow: 1, regrow: 0, kind: rollKind() });
+      this.full = this.sprite((g, c, r) => {
+        const gr = g.createRadialGradient(c - r * 0.35, c - r * 0.35, r * 0.1, c, c, r);
+        gr.addColorStop(0, 'hsla(205,35%,88%,0.45)'); gr.addColorStop(1, 'hsla(205,30%,60%,0.12)');
+        g.fillStyle = gr; g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'hsla(205,30%,85%,0.45)'; g.lineWidth = 1.2; g.stroke();
+        g.fillStyle = 'hsla(0,0%,100%,0.6)';
+        g.beginPath(); g.ellipse(c - r * 0.38, c - r * 0.42, r * 0.28, r * 0.14, -0.7, 0, Math.PI * 2); g.fill();
+      });
+      this.kinds = {};
+      for (const k in KINDS) {
+        const { h, sat } = KINDS[k];
+        this.kinds[k] = this.sprite((g, c, r) => {
+          const gr = g.createRadialGradient(c - r * 0.35, c - r * 0.35, r * 0.1, c, c, r);
+          gr.addColorStop(0, `hsla(${h},${sat}%,80%,0.85)`); gr.addColorStop(1, `hsla(${h},${sat - 10}%,42%,0.4)`);
+          g.fillStyle = gr; g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.fill();
+          g.strokeStyle = `hsla(${h},${sat}%,75%,0.75)`; g.lineWidth = 1.2; g.stroke();
+          g.fillStyle = 'hsla(0,0%,100%,0.7)';
+          g.beginPath(); g.ellipse(c - r * 0.38, c - r * 0.42, r * 0.28, r * 0.14, -0.7, 0, Math.PI * 2); g.fill();
+        });
+      }
+      this.flat = this.sprite((g, c, r) => {
+        g.strokeStyle = 'hsla(205,15%,55%,0.35)'; g.lineWidth = 1;
+        g.beginPath(); g.arc(c, c, r * 0.95, 0, Math.PI * 2); g.stroke();
+        g.beginPath();
+        for (let i = 0; i < 4; i++) {
+          const a = Math.random() * Math.PI * 2, l = r * (0.3 + Math.random() * 0.5);
+          g.moveTo(c + Math.cos(a) * l * 0.2, c + Math.sin(a) * l * 0.2); g.lineTo(c + Math.cos(a) * l, c + Math.sin(a) * l);
+        }
+        g.stroke();
+      });
+    },
+    pop(cell, vol, user) {
+      if (!cell.full) return;
+      cell.full = false; cell.anim = 1;
+      cell.regrow = 90 + Math.random() * 120;
+      const kind = cell.kind;
+      cell.was = kind;
+      this.rings.push({ x: cell.x, y: cell.y, r: this.r * 0.8, life: 1, kind, big: kind === 'red' });
+      popSound(kind ? 1.3 : vol);
+      cell.kind = rollKind();
+      const R = this.r;
+      if (kind === 'gold') {
+        // guld: naboerne popper én efter én i en kædereaktion
+        for (const o of this.cells) {
+          const d = Math.hypot(o.x - cell.x, o.y - cell.y);
+          if (o.full && d < R * 5) this.queue.push({ cell: o, t: Math.round(d / R * 2.5) });
+        }
+      } else if (kind === 'red') {
+        // rød: en bombe der popper alt omkring sig på én gang og ryster skærmen
+        this.shake = 12;
+        popSound(1.8);
+        for (const o of this.cells) if (o.full && Math.hypot(o.x - cell.x, o.y - cell.y) < R * 4.6) this.pop(o, 0.5, true);
+      } else if (kind === 'green') {
+        // grøn: hele rækken popper udad fra boblen til begge sider
+        this.streaks.push({ y: cell.y, x: cell.x, life: 1 });
+        for (const o of this.cells) if (o.full && Math.abs(o.y - cell.y) < 2)
+          this.queue.push({ cell: o, t: 1 + Math.round(Math.abs(o.x - cell.x) / (R * 2.35)) });
+      } else if (kind === 'purple') {
+        // lilla: tryller boblerne omkring sig om til andre specielle bobler
+        const near = this.cells.filter(o => o.full && !o.kind && Math.hypot(o.x - cell.x, o.y - cell.y) < R * 8);
+        for (let n = 0; n < 7 && near.length; n++) {
+          const o = near.splice(Math.floor(Math.random() * near.length), 1)[0];
+          o.kind = ['gold', 'red', 'green', 'blue'][Math.floor(Math.random() * 4)];
+          o.spark = 1;
+        }
+      } else if (kind === 'blue') {
+        // blå: kalder alle hamsterne, som hopper derhen og lander med et brag
+        for (const h of hamsters.list) jumpTo(h, cell.x + (Math.random() - 0.5) * 60, cell.y + (Math.random() - 0.5) * 60);
+      }
+      if (user) { this.combo++; this.comboT = 0; this.comboShow = 1; game.add(1); }
+    },
+    popArea(x, y, R, vol) {
+      for (const c of this.cells) if (c.full && Math.hypot(c.x - x, c.y - y) < R) this.pop(c, vol);
+    },
+    step() {
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, W, H);
+      ctx.save();
+      if (this.shake > 0.3) {
+        ctx.translate((Math.random() - 0.5) * this.shake, (Math.random() - 0.5) * this.shake);
+        this.shake *= 0.85;
+      }
+      const reach = this.r * 0.9 + strength * 2;
+      // træk med knappen nede: alle bobler på vejen popper
+      if (isReal() && mouse.down) {
+        const x0 = this.last ? this.last.x : mouse.x, y0 = this.last ? this.last.y : mouse.y;
+        const dx = mouse.x - x0, dy = mouse.y - y0, L2 = dx * dx + dy * dy || 1;
+        for (const c of this.cells) {
+          if (!c.full) continue;
+          const k = Math.max(0, Math.min(1, ((c.x - x0) * dx + (c.y - y0) * dy) / L2));
+          if (Math.hypot(c.x - (x0 + dx * k), c.y - (y0 + dy * k)) < reach) this.pop(c, 1, true);
+        }
+      }
+      this.last = isReal() ? { x: mouse.x, y: mouse.y } : null;
+      for (const q of this.queue) if (--q.t <= 0) this.pop(q.cell, 0.7, true);
+      this.queue = this.queue.filter(q => q.t > 0);
+      if (++this.comboT > 45) this.combo = 0;
+      const S = this.full.width / DPR;
+      for (const c of this.cells) {
+        // boblerne under musen trykkes lidt ned, før de popper
+        const hover = isReal() && !mouse.down && Math.hypot(c.x - mouse.x, c.y - mouse.y) < reach + 6;
+        c.press += ((hover ? 1 : 0) - c.press) * 0.3;
+        if (!c.full) {
+          if (--c.regrow <= 0) { c.full = true; c.grow = 0; }
+        } else if (c.grow < 1) c.grow = Math.min(1, c.grow + 0.04);
+        if (!c.full || c.grow < 1) ctx.drawImage(this.flat, c.x - S / 2, c.y - S / 2, S, S);
+        if (c.full) {
+          const k = (0.4 + 0.6 * c.grow) * (1 - c.press * 0.12);
+          ctx.globalAlpha = 0.3 + 0.7 * c.grow;
+          ctx.drawImage(c.kind ? this.kinds[c.kind] : this.full, c.x - S * k / 2, c.y - S * k / 2, S * k, S * k);
+          ctx.globalAlpha = 1;
+          if (c.spark > 0.02) {
+            ctx.strokeStyle = `hsla(285,60%,80%,${c.spark})`; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(c.x, c.y, this.r * (1.6 - c.spark * 0.6), 0, Math.PI * 2); ctx.stroke();
+            c.spark *= 0.93;
+          }
+        } else if (c.anim > 0) {
+          const k = 1 + (1 - c.anim) * 0.25;
+          ctx.globalAlpha = c.anim;
+          ctx.drawImage(c.was ? this.kinds[c.was] : this.full, c.x - S * k / 2, c.y - S * k / 2, S * k, S * k);
+          ctx.globalAlpha = 1;
+          c.anim -= 0.2;
+        }
+      }
+      for (const g of this.rings) {
+        g.r += g.big ? 7 : 1.6; g.life -= g.big ? 0.04 : 0.08;
+        ctx.strokeStyle = g.kind ? `hsla(${KINDS[g.kind].h},60%,75%,${Math.max(0, g.life) * 0.8})` : `hsla(205,40%,85%,${Math.max(0, g.life) * 0.5})`;
+        ctx.lineWidth = g.big ? 4 : 1.5;
+        ctx.beginPath(); ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2); ctx.stroke();
+      }
+      this.rings = this.rings.filter(g => g.life > 0);
+      for (const st of this.streaks) {
+        const grd = ctx.createLinearGradient(0, 0, W, 0);
+        grd.addColorStop(0, 'hsla(130,55%,65%,0)');
+        grd.addColorStop(Math.max(0, Math.min(1, st.x / W)), `hsla(130,55%,70%,${st.life * 0.7})`);
+        grd.addColorStop(1, 'hsla(130,55%,65%,0)');
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, st.y - this.r * 0.5 * st.life, W, this.r * st.life);
+        st.life -= 0.04;
+      }
+      this.streaks = this.streaks.filter(st => st.life > 0);
+      ctx.restore();
+      // combo-tæller ved musen når man popper mange i træk
+      if (this.combo >= 5 && isReal()) {
+        const size = Math.min(44, 16 + this.combo * 0.8);
+        ctx.font = `700 ${size}px ${getComputedStyle(document.documentElement).getPropertyValue('--display')}`;
+        ctx.fillStyle = `hsla(45,70%,72%,${Math.min(1, 1.4 - this.comboT / 45)})`;
+        const label = '×' + this.combo, tw = ctx.measureText(label).width;
+        const lx = mouse.x + 18 + tw > W - 8 ? mouse.x - 18 - tw : mouse.x + 18;
+        ctx.fillText(label, lx, Math.max(size, mouse.y - 18));
+      }
+    }
+  };
+
+  /* ---------- Point, rekorder og små "+3"-tekster ---------- */
+  const LABELS = { paint: 'biller fanget', swarm: 'ildflue-point', ripple: 'fiske-point', stars: 'stjerne-point', ink: 'fodrings-point', wrap: 'bobler poppet' };
+  const game = {
+    score: {}, best: {}, pops: [],
+    load() {
+      try { this.best = JSON.parse(localStorage.getItem('musefelt-best') || '{}') || {}; } catch (e) { this.best = {}; }
+    },
+    add(n, x, y, hue, text) {
+      this.score[mode] = (this.score[mode] || 0) + n;
+      if (this.score[mode] > (this.best[mode] || 0)) {
+        this.best[mode] = this.score[mode];
+        try { localStorage.setItem('musefelt-best', JSON.stringify(this.best)); } catch (e) {}
+      }
+      if (x != null) this.say(x, y, text || '+' + n, hue ?? 45);
+      this.hud();
+    },
+    say(x, y, text, hue) { this.pops.push({ x, y, text, hue, life: 1 }); },
+    hud() {
+      document.getElementById('scoreVal').textContent = this.score[mode] || 0;
+      document.getElementById('scoreLbl').textContent = LABELS[mode];
+      document.getElementById('bestVal').textContent = this.best[mode] || 0;
+      const g = document.getElementById('goal');
+      g.hidden = mode !== 'paint' || paint.target == null;
+      if (!g.hidden) document.getElementById('goalDot').style.background = `hsl(${paint.target},50%,60%)`;
+    },
+    draw() {
+      const font = getComputedStyle(document.documentElement).getPropertyValue('--display');
+      for (const p of this.pops) {
+        p.y -= 0.7; p.life -= 0.018;
+        ctx.font = `700 ${18 + (1 - p.life) * 6}px ${font}`;
+        ctx.fillStyle = `hsla(${p.hue},65%,72%,${Math.max(0, Math.min(1, p.life * 1.5))})`;
+        const w = ctx.measureText(p.text).width;
+        ctx.fillText(p.text, Math.max(6, Math.min(W - w - 6, p.x - w / 2)), Math.max(24, p.y));
+      }
+      this.pops = this.pops.filter(p => p.life > 0);
+    }
+  };
+  game.load();
+
+  // glasset man skal føre sin kæde af ildfluer hen til
+  const jar = {
+    x: 0, y: 0, r: 34, glow: 0,
+    place() {
+      this.x = 80 + Math.random() * (W - 160);
+      this.y = 110 + Math.random() * Math.max(40, H - 330);
+    },
+    step() {
+      if (!this.x) this.place();
+      const ch = fireflies.chain;
+      if (ch.length && isReal() && Math.hypot(mouse.x - this.x, mouse.y - this.y) < this.r + 6) {
+        const n = ch.length, pts = n * (n + 1) / 2;
+        game.add(pts, this.x, this.y - this.r - 14, 55, n > 1 ? `+${pts}  (${n} i kæde)` : '+1');
+        for (const c of ch) {
+          c.caught = false;
+          c.x = Math.random() < 0.5 ? -10 : W + 10; c.y = 40 + Math.random() * (H - 240);
+          c.a = Math.atan2(H / 2 - c.y, W / 2 - c.x); c.fear = 0;
+        }
+        fireflies.chain = [];
+        this.glow = Math.min(1.5, 0.5 + n * 0.15);
+        this.place();
+      }
+      this.glow *= 0.97;
+      const { x, y, r } = this;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r * 2.2);
+      g.addColorStop(0, `hsla(55,70%,70%,${0.12 + this.glow * 0.4})`); g.addColorStop(1, 'hsla(55,70%,70%,0)');
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `hsla(200,25%,80%,${0.55 + 0.3 * Math.sin(t * 3)})`; ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 0.55, y - r); ctx.lineTo(x - r * 0.55, y - r * 0.75);
+      ctx.quadraticCurveTo(x - r, y - r * 0.6, x - r, y); ctx.lineTo(x - r, y + r * 0.7);
+      ctx.quadraticCurveTo(x - r, y + r, x - r * 0.7, y + r); ctx.lineTo(x + r * 0.7, y + r);
+      ctx.quadraticCurveTo(x + r, y + r, x + r, y + r * 0.7); ctx.lineTo(x + r, y);
+      ctx.quadraticCurveTo(x + r, y - r * 0.6, x + r * 0.55, y - r * 0.75); ctx.lineTo(x + r * 0.55, y - r);
+      ctx.stroke();
+      ctx.fillStyle = 'hsla(30,25%,45%,0.9)';
+      ctx.fillRect(x - r * 0.62, y - r - 7, r * 1.24, 7);
+      if (fireflies.chain.length) {
+        ctx.font = `600 13px ${getComputedStyle(document.documentElement).getPropertyValue('--mono')}`;
+        ctx.fillStyle = 'hsla(55,60%,75%,0.9)';
+        const txt = fireflies.chain.length + ' i kæden';
+        ctx.fillText(txt, x - ctx.measureText(txt).width / 2, y + r + 22);
+      }
+    }
+  };
+
+  /* ---------- Små dyr: rolige når musen står stille, flygter ved bevægelse eller klik ---------- */
+  let clickPulse = null, releasePulse = false;
+  const isReal = () => !idle && mouse.active;
+  const TAU = Math.PI * 2;
+
+  function makeCritters(n, opt) {
+    return {
+      list: [], chain: [],
+      init() {
+        this.list = []; this.chain = [];
+        const count = W < 500 ? Math.ceil(n * 0.6) : n;
+        for (let i = 0; i < count; i++) this.list.push({
+          x: 60 + Math.random() * (W - 120), y: 60 + Math.random() * (H - 220),
+          a: Math.random() * TAU, turn: 0, fear: 0, ph: Math.random() * 10, slot: i / count * TAU,
+          vx: 0, vy: 0, mode: null,
+          s: opt.size * (0.8 + Math.random() * 0.45), hue: opt.hue()
+        });
+      },
+      spawn(x, y, size) {
+        const c = { x, y, a: Math.random() * TAU, turn: 0, fear: 0, ph: Math.random() * 10, slot: Math.random() * TAU,
+          vx: 0, vy: 0, mode: null, s: size || opt.size, hue: opt.hue() };
+        this.list.push(c);
+        return c;
+      },
+      draw(c) {
+        ctx.save();
+        const pos = opt.pos ? opt.pos(c) : c;
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(c.a);
+        opt.draw(c);
+        ctx.restore();
+      },
+      step() {
+        const msp = Math.hypot(mouse.vx, mouse.vy);
+        const reach = 170 + strength * 22;
+        const skipScare = clickPulse && opt.onClickAll ? opt.onClickAll(this.list, clickPulse, this) : false;
+        if (releasePulse && opt.onRelease) for (const c of this.list) opt.onRelease(c);
+        if (opt.glow) ctx.globalCompositeOperation = 'lighter';
+        for (const c of this.list) {
+          const dx = c.x - mouse.x, dy = c.y - mouse.y, d = Math.hypot(dx, dy);
+          let clickHandled = skipScare;
+          if (clickPulse && !skipScare && opt.onClick) clickHandled = opt.onClick(c, clickPulse);
+          if (opt.custom && opt.custom(c, this)) { this.draw(c); continue; }
+
+          if (!opt.calm && isReal() && msp > 2.5 && d < reach) c.fear = Math.max(c.fear, Math.min(1, (msp / 10) * (1.4 - d / reach)));
+          if (!opt.calm && clickPulse && !clickHandled && Math.hypot(c.x - clickPulse.x, c.y - clickPulse.y) < 260 + strength * 30) c.fear = 1;
+
+          const m = 50;
+          const nearEdge = c.x < m || c.x > W - m || c.y < m || c.y > H - (W < 600 ? 230 : 170);
+          let target = null;
+          if (c.fear > 0.08) target = Math.atan2(dy, dx);
+          if (nearEdge) target = Math.atan2(H / 2 - c.y, W / 2 - c.x);
+          if (target !== null) {
+            const diff = Math.atan2(Math.sin(target - c.a), Math.cos(target - c.a));
+            c.a += diff * (c.fear > 0.08 && !nearEdge ? 0.22 : 0.06);
+          } else {
+            c.turn += (Math.random() - 0.5) * 0.02;
+            c.turn *= 0.95;
+            c.a += c.turn;
+          }
+          const v = opt.speed * (1 + c.fear * opt.burst);
+          c.x += Math.cos(c.a) * v; c.y += Math.sin(c.a) * v;
+          c.x = Math.max(-20, Math.min(W + 20, c.x)); c.y = Math.max(-20, Math.min(H + 20, c.y));
+          c.fear *= 0.978;
+          c.ph += 0.12 * (1 + c.fear * 3);
+          opt.onMove && opt.onMove(c);
+          this.draw(c);
+        }
+        ctx.globalCompositeOperation = 'source-over';
+      }
+    };
+  }
+
+  const turnTo = (c, target, k) => { c.a += Math.atan2(Math.sin(target - c.a), Math.cos(target - c.a)) * k; };
+  const FISH_HUES = [22, 40, 200, 150, 330, 270, 55];
+
+  function launchFish(c, a, v, chain) {
+    c.mode = 'bounce'; c.a = a; c.bv = v; c.bt = 300; c.chain = chain;
+    let pts = chain ? 1 + chain * 2 : 1;
+    let text = chain ? `+${pts}  kæde ×${chain}` : '+1';
+    if (c.gold) { pts += 5; text = `+${pts} guldfisk!`; c.gold = false; c.hue = FISH_HUES[Math.floor(Math.random() * 4)]; }
+    game.add(pts, c.x, c.y - 18, chain ? 190 : 45, text);
+  }
+
+  // Fisk i vandet
+  const fish = makeCritters(9, {
+    size: 11, speed: 0.7, burst: 6,
+    hue: () => FISH_HUES[Math.floor(Math.random() * 4)],
+    // klik nær en fisk: den skydes afsted og hopper på skærmens kanter som et dvd-logo
+    onClick(c, p) {
+      const d = Math.hypot(c.x - p.x, c.y - p.y);
+      if (d > 150 + strength * 15) return false;
+      launchFish(c, Math.atan2(c.y - p.y, c.x - p.x) + (Math.random() - 0.5) * 0.3, 7 + strength * 0.8, 0);
+      return true;
+    },
+    custom(c) {
+      if (c.mode !== 'bounce') {
+        // musen står stille: fiskene bliver nysgerrige og svømmer rundt om den
+        if (!(isReal() && mouse.still > 50 && c.fear < 0.1)) return false;
+        const rr = 45 + (c.slot / TAU) * 50;
+        const tx = mouse.x + Math.cos(c.slot + t * 0.5) * rr, ty = mouse.y + Math.sin(c.slot + t * 0.5) * rr;
+        turnTo(c, Math.atan2(ty - c.y, tx - c.x), 0.08);
+        const v = Math.min(1.6, 0.4 + Math.hypot(tx - c.x, ty - c.y) * 0.02);
+        c.x += Math.cos(c.a) * v; c.y += Math.sin(c.a) * v;
+        c.ph += 0.15;
+        if (Math.random() < 0.03) ripple.disturb(c.x, c.y, 5, 0);
+        return true;
+      }
+      c.x += Math.cos(c.a) * c.bv; c.y += Math.sin(c.a) * c.bv;
+      // en skudt fisk der rammer en rolig fisk, sender den afsted også: kædepoint
+      if (c.bv > 2.5) for (const o of fish.list) {
+        if (o === c || o.mode === 'bounce') continue;
+        if (Math.hypot(o.x - c.x, o.y - c.y) < (o.s + c.s) * 0.9) {
+          launchFish(o, Math.atan2(o.y - c.y, o.x - c.x), c.bv * 0.9, (c.chain || 0) + 1);
+          c.a += (Math.random() - 0.5) * 1.2;
+        }
+      }
+      const s = c.s;
+      let hit = false;
+      if (c.x < s) { c.x = s; c.a = Math.PI - c.a; hit = true; }
+      if (c.x > W - s) { c.x = W - s; c.a = Math.PI - c.a; hit = true; }
+      if (c.y < s) { c.y = s; c.a = -c.a; hit = true; }
+      if (c.y > H - s) { c.y = H - s; c.a = -c.a; hit = true; }
+      if (hit) {
+        let h; do { h = FISH_HUES[Math.floor(Math.random() * FISH_HUES.length)]; } while (h === c.hue);
+        c.hue = h;
+        ripple.disturb(c.x, c.y, 90, 1);
+      }
+      if (Math.random() < 0.3) ripple.disturb(c.x, c.y, 10, 0);
+      c.bv *= 0.996;
+      c.ph += 0.5;
+      if (--c.bt <= 0 || c.bv < 1.5) { c.mode = null; c.fear = 0.4; }
+      return true;
+    },
+    onMove(c) {
+      // nu og da bliver en fisk til en guldfisk
+      if (Math.random() < 0.0004 && !fish.list.some(o => o.gold)) c.gold = true;
+      if (Math.random() < (c.fear > 0.3 ? 0.35 : 0.03)) ripple.disturb(c.x, c.y, c.fear > 0.3 ? 14 : 5, 0);
+    },
+    draw(c) {
+      const s = c.s, wag = Math.sin(c.ph * 1.6) * 0.4;
+      ctx.fillStyle = c.gold ? `hsla(48,75%,${62 + Math.sin(t * 10) * 8}%,1)` : `hsla(${c.hue},45%,62%,0.92)`;
+      ctx.save(); ctx.translate(-s * 0.75, 0); ctx.rotate(wag);
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-s * 0.75, -s * 0.5); ctx.lineTo(-s * 0.6, 0); ctx.lineTo(-s * 0.75, s * 0.5); ctx.closePath(); ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.ellipse(0, 0, s, s * 0.42, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'rgba(11,13,20,0.8)';
+      ctx.beginPath(); ctx.arc(s * 0.5, -s * 0.1, 1.3, 0, TAU); ctx.fill();
+    }
+  });
+
+  // Malebiller: hver bille har sin farve og maler et spor efter sig
+  const PAINT_HUES = [350, 20, 45, 90, 160, 200, 230, 280, 320];
+  const painters = makeCritters(22, {
+    size: 6, speed: 1.0, burst: 0, calm: true,
+    // hold musen nede: billerne løber hen og maler cirkler rundt om musen
+    custom(c) {
+      if (!(isReal() && mouse.down)) return false;
+      const rr = 50 + (c.slot / TAU) * 110;
+      const tx = mouse.x + Math.cos(c.slot + t * 1.2) * rr, ty = mouse.y + Math.sin(c.slot + t * 1.2) * rr;
+      const dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy);
+      turnTo(c, Math.atan2(dy, dx), 0.2);
+      const v = Math.min(4, 1 + d * 0.05);
+      c.x += Math.cos(c.a) * v; c.y += Math.sin(c.a) * v;
+      c.ph += 0.2;
+      if (!c.w0) { c.w0 = 8 + Math.random() * 14; c.seed = Math.random() * 10; }
+      paint.trail(c);
+      return true;
+    },
+    hue: () => PAINT_HUES[Math.floor(Math.random() * PAINT_HUES.length)],
+    onMove(c) {
+      if (!c.w0) { c.w0 = 8 + Math.random() * 14; c.seed = Math.random() * 10; }
+      paint.trail(c);
+    },
+    draw(c) {
+      const s = c.s, leg = Math.sin(c.ph * 3) * s * 0.25;
+      ctx.strokeStyle = 'hsl(240,10%,70%)'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (const side of [-1, 1]) for (const k of [-0.5, 0, 0.5]) {
+        const o = side * (k === 0 ? -leg : leg);
+        ctx.moveTo(k * s, side * s * 0.5); ctx.lineTo(k * s + o, side * s * 1.05);
+      }
+      ctx.stroke();
+      if (c.gold) {
+        ctx.strokeStyle = `hsla(45,70%,70%,${0.5 + 0.4 * Math.sin(t * 8)})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, s * 2, 0, TAU); ctx.stroke();
+      }
+      if (c.zoom > 0.02) {
+        ctx.strokeStyle = `hsla(${c.hue},60%,70%,${c.zoom})`; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(0, 0, s * (4 - c.zoom * 2.5), 0, TAU); ctx.stroke();
+        c.zoom *= 0.92;
+      }
+      ctx.fillStyle = c.gold ? 'hsl(45,70%,62%)' : `hsl(${c.hue},50%,60%)`;
+      ctx.beginPath(); ctx.ellipse(0, 0, s * (c.gold ? 1.3 : 1), s * 0.7 * (c.gold ? 1.3 : 1), 0, 0, TAU); ctx.fill();
+      ctx.strokeStyle = `hsl(${c.hue},40%,35%)`; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-s, 0); ctx.lineTo(s * 0.6, 0); ctx.stroke();
+      ctx.fillStyle = 'hsl(240,10%,85%)';
+      ctx.beginPath(); ctx.arc(s * 0.95, 0, s * 0.38, 0, TAU); ctx.fill();
+    }
+  });
+
+  // Ildfluer i sværmen
+  const fireflies = makeCritters(22, {
+    size: 3, speed: 0.6, burst: 7, glow: true,
+    hue: () => 50 + Math.random() * 20,
+    // klik på en ildflue for at fange den; fangne ildfluer følger musen som en kæde
+    onClickAll(list, p, self) {
+      const hit = list.filter(c => !c.caught && Math.hypot(c.x - p.x, c.y - p.y) < 40 + strength * 4);
+      if (hit.length) { hit.forEach(c => { c.caught = true; self.chain.push(c); }); return true; }
+      if (self.chain.length) {
+        self.chain.forEach(c => { c.caught = false; c.fear = 1; c.a = Math.random() * TAU; });
+        self.chain = [];
+      }
+      return false;
+    },
+    custom(c, self) {
+      if (!c.caught) return false;
+      const i = self.chain.indexOf(c);
+      const lead = i <= 0 ? mouse : self.chain[i - 1];
+      const dx = lead.x - c.x, dy = lead.y - c.y, d = Math.hypot(dx, dy);
+      const gap = i <= 0 ? 10 : 18;
+      if (d > gap) { c.x += dx / d * (d - gap) * 0.25; c.y += dy / d * (d - gap) * 0.25; }
+      c.a = Math.atan2(dy, dx);
+      c.fear = 0.5;
+      c.ph += 0.2;
+      return true;
+    },
+    draw(c) {
+      const blink = c.fear > 0.2 ? 1 : 0.35 + 0.65 * Math.max(0, Math.sin(c.ph * 0.35));
+      const R = c.s * 6;
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+      g.addColorStop(0, `hsla(${c.hue},60%,70%,${0.55 * blink})`);
+      g.addColorStop(1, `hsla(${c.hue},60%,70%,0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+      ctx.fillStyle = `hsla(${c.hue},50%,85%,${0.5 + 0.5 * blink})`;
+      ctx.beginPath(); ctx.arc(0, 0, c.s * 0.6, 0, TAU); ctx.fill();
+    }
+  });
+
+  // Kometer blandt stjernerne
+  const comets = makeCritters(6, {
+    size: 8, speed: 0.6, burst: 6, glow: true, calm: true,
+    hue: () => 30 + Math.random() * 30,
+    // tag fat i en komet, træk tilbage og slip: den skydes afsted som med en slangebøsse.
+    onClickAll(list, p, self) {
+      let best = null, bd = 55 + strength * 3;
+      for (const c of list) { const d = Math.hypot(c.x - p.x, c.y - p.y); if (d < bd) { bd = d; best = c; } }
+      if (best) { best.grab = true; best.mode = null; return true; }
+      stars.born(p.x, p.y);
+      return true;
+    },
+    onRelease(c) {
+      if (!c.grab) return;
+      c.grab = false;
+      const dx = c.x - mouse.x, dy = c.y - mouse.y, d = Math.hypot(dx, dy);
+      if (d < 8) return;
+      const v = Math.min(28, d * (0.1 + strength * 0.012));
+      c.vx = dx / d * v; c.vy = dy / d * v;
+      c.mode = 'thrown'; c.hits = 0;
+    },
+    custom(c) {
+      if (c.grab) {
+        // elastikken fra kometen til musen
+        const d = Math.hypot(mouse.x - c.x, mouse.y - c.y);
+        ctx.strokeStyle = `hsla(35,50%,75%,${Math.min(0.8, 0.25 + d / 300)})`;
+        ctx.lineWidth = Math.max(0.8, 3 - d / 120);
+        ctx.setLineDash([4, 5]);
+        ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(mouse.x, mouse.y); ctx.stroke();
+        ctx.setLineDash([]);
+        c.a = Math.atan2(c.y - mouse.y, c.x - mouse.x);
+        c.fear = Math.min(1, d / 150);
+        c.ph += 0.3;
+        return true;
+      }
+      if (c.mode !== 'thrown') return false;
+      if (c.cool > 0) c.cool--;
+      // to kometer der rammer hinanden: et brag, gnister, en supernova-ring, og de preller af
+      for (const o of comets.list) {
+        if (o === c || o.grab || c.cool > 0 || o.cool > 0) continue;
+        const dx = o.x - c.x, dy = o.y - c.y, d = Math.hypot(dx, dy) || 1;
+        if (d > (c.s + o.s) * 1.3) continue;
+        if (o.mode !== 'thrown') { o.vx = Math.cos(o.a) * 0.6; o.vy = Math.sin(o.a) * 0.6; o.mode = 'thrown'; }
+        const nx = dx / d, ny = dy / d;
+        const rel = (c.vx - o.vx) * nx + (c.vy - o.vy) * ny;
+        if (rel <= 0) continue;
+        c.vx -= rel * nx; c.vy -= rel * ny;
+        o.vx += rel * nx; o.vy += rel * ny;
+        c.cool = o.cool = 15;
+        const mx = (c.x + o.x) / 2, my = (c.y + o.y) / 2;
+        stars.burst(mx, my, c.hue, o.hue);
+        game.add(3, mx, my - 20, 20, '+3 sammenstød!');
+        stars.shock(mx, my);
+        stars.shocks[stars.shocks.length - 1].big = true;
+      }
+      c.x += c.vx; c.y += c.vy;
+      // glimmerspor efter kometen
+      if (Math.random() < 0.6) stars.sparks.push({ x: c.x, y: c.y, vx: (Math.random() - 0.5) * 0.6, vy: (Math.random() - 0.5) * 0.6, life: 0.7, hue: c.hue });
+      if (c.x < 0 || c.x > W) { c.vx *= -1; c.x = Math.max(0, Math.min(W, c.x)); stars.shock(c.x, c.y); }
+      if (c.y < 0 || c.y > H) { c.vy *= -1; c.y = Math.max(0, Math.min(H, c.y)); stars.shock(c.x, c.y); }
+      // stjerner kometen suser forbi, lyser op og puffes til side
+      for (const p of stars.ps) {
+        const dx = p.x - c.x, dy = p.y - c.y, d = Math.hypot(dx, dy) || 1;
+        if (d < 45) { p.glow = 1; p.vx += dx / d * 1.2; p.vy += dy / d * 1.2; }
+        // gyldne målstjerner: point, og flere i samme skud giver bonus
+        if (p.target && d < 34) {
+          p.target = false;
+          c.hits = (c.hits || 0) + 1;
+          const pts = c.hits;
+          game.add(pts, p.x, p.y - 16, 45, c.hits > 1 ? `+${pts}  ${c.hits} i ét skud` : '+1');
+          stars.burst(p.x, p.y, 45, 50);
+          stars.newTarget();
+        }
+      }
+      c.vx *= 0.99; c.vy *= 0.99;
+      const sp = Math.hypot(c.vx, c.vy);
+      c.a = Math.atan2(c.vy, c.vx);
+      c.fear = Math.min(1, sp / 8);
+      if (sp < 1.5) { c.mode = null; c.fear = 0.3; }
+      return true;
+    },
+    draw(c) {
+      const len = c.s * (6 + c.fear * 10);
+      const g = ctx.createLinearGradient(0, 0, -len, 0);
+      g.addColorStop(0, `hsla(${c.hue},45%,78%,0.7)`);
+      g.addColorStop(1, `hsla(${c.hue},45%,78%,0)`);
+      ctx.strokeStyle = g; ctx.lineWidth = c.s * 0.9; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-len, 0); ctx.stroke();
+      const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, c.s * 2.4);
+      halo.addColorStop(0, `hsla(${c.hue},45%,80%,0.35)`);
+      halo.addColorStop(1, `hsla(${c.hue},45%,80%,0)`);
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(0, 0, c.s * 2.4, 0, TAU); ctx.fill();
+      ctx.fillStyle = `hsla(${c.hue},40%,88%,0.95)`;
+      ctx.beginPath(); ctx.arc(0, 0, c.s * 0.7, 0, TAU); ctx.fill();
+    }
+  });
+
+  // Blæksprutter, der sprøjter blæk når de flygter
+  const squids = makeCritters(5, {
+    size: 12, speed: 0.5, burst: 7,
+    hue: () => 320 + Math.random() * 30,
+    // klik: drys foder i vandet; blæksprutterne svømmer hen og spiser og vokser lidt
+    onClickAll(list, p) {
+      // klik på en blæksprutte: den bliver forskrækket, sprøjter en stor blæksky og suser væk
+      const hit = list.find(c => Math.hypot(c.x - p.x, c.y - p.y) < c.s * 1.6 + 12);
+      if (hit) {
+        hit.fear = 1;
+        hit.a = Math.atan2(hit.y - p.y, hit.x - p.x) + (Math.random() - 0.5);
+        for (let i = 0; i < 26; i++) {
+          const a = Math.random() * Math.PI * 2, v = Math.random() * 2.5;
+          ink.add(hit.x, hit.y, Math.cos(a) * v, Math.sin(a) * v, 10 + Math.random() * 10, 265);
+        }
+        return true;
+      }
+      for (let i = 0; i < 6; i++)
+        ink.food.push({ x: p.x + (Math.random() - 0.5) * 50, y: p.y + (Math.random() - 0.5) * 30, ph: Math.random() * 6, life: 1, gold: Math.random() < 0.12 });
+      return true;
+    },
+    custom(c) {
+      c.full = (c.full || 0) * 0.99;
+      if (c.s < 10) c.s += 0.004;
+      if (c.fear > 0.2) return false;
+      if (!ink.food.length) {
+        // musen står stille: blæksprutterne kommer nysgerrigt hen og kredser om den
+        if (!(isReal() && mouse.still > 50)) return false;
+        const rr = 60 + (c.slot / TAU) * 40;
+        const tx = mouse.x + Math.cos(c.slot - t * 0.4) * rr, ty = mouse.y + Math.sin(c.slot - t * 0.4) * rr;
+        turnTo(c, Math.atan2(ty - c.y, tx - c.x), 0.06);
+        const v = Math.min(1.3, 0.3 + Math.hypot(tx - c.x, ty - c.y) * 0.015);
+        c.x += Math.cos(c.a) * v; c.y += Math.sin(c.a) * v;
+        c.ph += 0.12;
+        return true;
+      }
+      let best = null, bd = 600;
+      for (const f of ink.food) { const d = Math.hypot(f.x - c.x, f.y - c.y); if (d < bd) { bd = d; best = f; } }
+      if (!best) return false;
+      turnTo(c, Math.atan2(best.y - c.y, best.x - c.x), 0.1);
+      const v = 0.8 + Math.min(1.4, bd * 0.01);
+      c.x += Math.cos(c.a) * v; c.y += Math.sin(c.a) * v;
+      c.ph += 0.2;
+      if (bd < c.s * 1.2) {
+        best.life = 0;
+        ink.food = ink.food.filter(f => f !== best);
+        c.s = Math.min(22, c.s * 1.06);
+        c.full = 1;
+        c.eaten = (c.eaten || 0) + 1;
+        game.add(best.gold ? 3 : 1, c.x, c.y - 20, best.gold ? 48 : 175);
+        // har den spist 6 gange, får den en unge
+        if (c.eaten >= 6) {
+          c.eaten = 0; c.s = 12;
+          if (squids.list.length < 12) squids.spawn(c.x, c.y, 7);
+          game.add(5, c.x, c.y - 40, 320, '+5 en unge!');
+        }
+        for (let i = 0; i < 4; i++) {
+          const a = Math.random() * TAU;
+          ink.add(c.x, c.y, Math.cos(a) * 1.2, Math.sin(a) * 1.2, 6, 175);
+        }
+      }
+      return true;
+    },
+    onMove(c) {
+      if (c.fear > 0.35 && Math.random() < 0.5)
+        ink.add(c.x - Math.cos(c.a) * c.s * 1.6, c.y - Math.sin(c.a) * c.s * 1.6,
+                -Math.cos(c.a) * 0.6 + (Math.random() - 0.5), -Math.sin(c.a) * 0.6 + (Math.random() - 0.5), 10, 265);
+    },
+    draw(c) {
+      const s = c.s;
+      ctx.strokeStyle = `hsla(${c.hue},30%,62%,0.85)`; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+      for (let i = 0; i < 6; i++) {
+        const off = (i - 2.5) * s * 0.09;
+        ctx.beginPath(); ctx.moveTo(-s * 0.3, off);
+        for (let k = 1; k <= 6; k++) {
+          const x = -s * 0.3 - k * s * 0.22;
+          ctx.lineTo(x, off * (1 + k * 0.15) + Math.sin(c.ph * 1.5 + k * 0.8 + i) * s * 0.08 * k * 0.5);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = `hsla(${c.hue - (c.full || 0) * 140},${30 + (c.full || 0) * 20}%,${66 + (c.full || 0) * 8}%,0.92)`;
+      ctx.beginPath(); ctx.ellipse(s * 0.35, 0, s * 0.75, s * 0.32, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(s * 0.8, 0); ctx.lineTo(s * 1.2, -s * 0.3); ctx.lineTo(s * 1.2, s * 0.3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = 'rgba(11,13,20,0.85)';
+      ctx.beginPath(); ctx.arc(-s * 0.15, -s * 0.15, 1.4, 0, TAU); ctx.arc(-s * 0.15, s * 0.15, 1.4, 0, TAU); ctx.fill();
+    }
+  });
+
+  // Hamstere der tripper rundt på bobleplasten; klik på en, så hopper den og lander med et brag af pop
+  const hamsters = makeCritters(14, {
+    size: 9, speed: 0.7, burst: 5,
+    hue: () => [28, 35, 20][Math.floor(Math.random() * 3)],
+    onClick(c, p) {
+      if (Math.hypot(c.x - p.x, c.y - p.y) > 30 + strength * 2) return false;
+      jumpTo(c, c.x + (Math.random() - 0.5) * 300, Math.min(H - 180, c.y + (Math.random() - 0.5) * 220));
+      return true;
+    },
+    custom(c) {
+      if (c.mode !== 'jump') { c.z = 0; return false; }
+      c.k += 0.02;
+      const k = Math.min(1, c.k);
+      c.z = Math.sin(k * Math.PI);
+      const nx = c.sx + (c.tx - c.sx) * k, ny = c.sy + (c.ty - c.sy) * k - c.z * 70;
+      if (Math.hypot(nx - c.x, ny - c.y) > 0.1) c.a = Math.atan2(c.ty - c.sy, c.tx - c.sx);
+      c.x = nx; c.y = ny; c.ph += 0.3;
+      if (k >= 1) { c.mode = null; c.z = 0; wrap.popArea(c.x, c.y, 50 + strength * 4, 0.9); }
+      return true;
+    },
+    onMove(c) {
+      if (Math.random() < 0.04) wrap.popArea(c.x, c.y, 9, 0.3);
+    },
+    draw(c) {
+      const s = c.s * (1 + (c.z || 0) * 0.45), wig = Math.sin(c.ph * 3) * 0.15;
+      if (c.z) {
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath(); ctx.ellipse(-c.z * 6, c.z * 60, s * 0.9, s * 0.6, 0, 0, TAU); ctx.fill();
+      }
+      ctx.strokeStyle = `hsl(${c.hue},30%,55%)`; ctx.lineWidth = 1.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-s * 0.9, 0); ctx.quadraticCurveTo(-s * 1.4, wig * s * 3, -s * 1.7, wig * s * 2); ctx.stroke();
+      ctx.fillStyle = `hsl(${c.hue},38%,62%)`;
+      ctx.beginPath(); ctx.ellipse(0, 0, s, s * 0.72, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = `hsl(${c.hue},38%,68%)`;
+      ctx.beginPath(); ctx.arc(s * 0.85, 0, s * 0.5, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'hsl(350,35%,72%)';
+      ctx.beginPath(); ctx.arc(s * 0.7, -s * 0.45, s * 0.2, 0, TAU); ctx.arc(s * 0.7, s * 0.45, s * 0.2, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(s * 1.32, 0, s * 0.1, 0, TAU); ctx.fill();
+      ctx.fillStyle = 'hsl(240,10%,12%)';
+      ctx.beginPath(); ctx.arc(s * 1.0, -s * 0.2, 1.3, 0, TAU); ctx.arc(s * 1.0, s * 0.2, 1.3, 0, TAU); ctx.fill();
+    }
+  });
+
+  const critters = { paint: painters, swarm: fireflies, ripple: fish, stars: comets, ink: squids, wrap: hamsters };
+
+  const effects = { paint, swarm, ripple, stars, ink, wrap };
+  const order = ['paint', 'swarm', 'ripple', 'stars', 'ink', 'wrap'];
+  let mode = 'paint';
+
+  function clear() { ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H); }
+
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    clear();
+    for (const k in effects) { effects[k].init(); critters[k].init(); }
+  }
+
+  function setMode(next) {
+    if (!effects[next]) return;
+    mode = next;
+    document.querySelectorAll('.mode').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+    hintEl.textContent = HINTS[mode];
+    game.hud();
+    document.getElementById('legend').hidden = mode !== 'wrap';
+    clear();
+    effects[mode].init();
+    critters[mode].init();
+    try { localStorage.setItem('musefelt-mode', mode); } catch (e) {}
+  }
+
+  document.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  window.addEventListener('keydown', e => {
+    const i = ['1', '2', '3', '4', '5', '6'].indexOf(e.key);
+    if (i >= 0) setMode(order[i]);
+    if (e.key === 'm' || e.key === 'M') muted = !muted;
+  });
+  const hideHud = document.getElementById('hideHud');
+  const applyHud = () => {
+    document.body.classList.toggle('hud-hidden', hideHud.checked);
+    try { localStorage.setItem('musefelt-hud', hideHud.checked ? '1' : '0'); } catch (e) {}
+  };
+  try { hideHud.checked = localStorage.getItem('musefelt-hud') === '1'; } catch (e) {}
+  hideHud.addEventListener('change', applyHud);
+  applyHud();
+  strengthEl.addEventListener('input', () => { strength = +strengthEl.value; strengthOut.textContent = strength; });
+
+  function pos(e) { mouse.x = e.clientX; mouse.y = e.clientY; mouse.active = true; }
+  canvas.addEventListener('pointermove', pos);
+  canvas.addEventListener('pointerdown', e => {
+    pos(e); mouse.down = true; idle = false;
+    clickPulse = { x: mouse.x, y: mouse.y };
+    canvas.setPointerCapture?.(e.pointerId);
+    initAudio();
+    if (audio && audio.state === 'suspended') audio.resume();
+    if (mode === 'paint') paint.click(mouse.x, mouse.y);
+    if (mode === 'ripple') ripple.disturb(mouse.x, mouse.y, 220 + strength * 40, 3);
+  });
+  const up = e => { if (mouse.down) releasePulse = true; mouse.down = false; if (e.pointerType !== 'mouse') mouse.active = false; };
+  canvas.addEventListener('pointerup', up);
+  canvas.addEventListener('pointercancel', up);
+  canvas.addEventListener('pointerleave', () => { if (mouse.down) releasePulse = true; mouse.active = false; mouse.down = false; });
+
+  // Ingen mus endnu: en "spøgelsesmus" glider rundt, så siden viser effekten fra start
+  let idle = true;
+  canvas.addEventListener('pointermove', () => { idle = false; }, { once: true });
+
+  function frame() {
+    t += reduceMotion ? 0.004 : 0.016;
+    if (idle) {
+      mouse.x = W / 2 + Math.cos(t * 0.8) * W * 0.28;
+      mouse.y = H * 0.45 + Math.sin(t * 1.3) * H * 0.2;
+      mouse.active = true;
+    }
+    mouse.vx = mouse.px < -999 ? 0 : mouse.x - mouse.px;
+    mouse.vy = mouse.py < -999 ? 0 : mouse.y - mouse.py;
+    mouse.px = mouse.x; mouse.py = mouse.y;
+    mouse.still = (isReal() && Math.hypot(mouse.vx, mouse.vy) < 0.6) ? (mouse.still || 0) + 1 : 0;
+    effects[mode].step();
+    critters[mode].step();
+    if (mode === 'paint') paint.tick();
+    if (mode === 'swarm') jar.step();
+    game.draw();
+    clickPulse = null; releasePulse = false;
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  let saved = null;
+  try { saved = localStorage.getItem('musefelt-mode'); } catch (e) {}
+  if (saved && effects[saved]) setMode(saved);
+  game.hud();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

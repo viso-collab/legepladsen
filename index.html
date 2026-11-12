@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif}[hidden]{display:none!important}</style></head><body>
+<title>Legepladsen</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Bungee&family=Rye&family=Rubik:wght@400;500&display=swap">
+<style>
+/* Layout: one plain sheet with a big hand-set title and a grid of game tiles; picking a tile opens the game full screen under a slim back bar. */
+:root {
+  --bg: #f7f6f2;
+  --fg: #16161a;
+  --muted: #66656f;
+  --line: #dcdad3;
+  --bar: #ffffff;
+  --accent: #3d5afe;
+  --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --body: "Rubik", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #121216; --fg: #f1f0ec; --muted: #9d9ca8; --line: #2c2c34; --bar: #1b1b21; --accent: #8c9bff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #121216; --fg: #f1f0ec; --muted: #9d9ca8; --line: #2c2c34; --bar: #1b1b21; --accent: #8c9bff; color-scheme: dark; }
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); }
+.home {
+  max-width: 1080px; margin: 0 auto; box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: clamp(32px, 7vw, 72px) 48px;
+  display: flex; flex-direction: column; gap: clamp(28px, 5vw, 48px);
+}
+header { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+h1 {
+  margin: 0; font-family: var(--display); font-weight: 800;
+  font-size: clamp(48px, 11vw, 112px); line-height: .9; letter-spacing: -0.035em; text-wrap: balance;
+}
+h1 span { display: inline-block; transition: transform .25s cubic-bezier(.3,1.6,.5,1); }
+h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
+.lead { margin: 0; color: var(--muted); font-size: 17px; max-width: 46ch; line-height: 1.5; text-wrap: balance; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
+.tile {
+  all: unset; box-sizing: border-box; cursor: pointer;
+  display: flex; flex-direction: column; border-radius: 22px; overflow: hidden;
+  background: var(--t-bg); color: var(--t-fg);
+  box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 10px 30px -18px rgba(0,0,0,.5);
+  transition: transform .2s cubic-bezier(.3,1.4,.5,1), box-shadow .2s;
+}
+.tile:hover { transform: translateY(-5px) rotate(-.6deg); box-shadow: 0 1px 0 rgba(0,0,0,.06), 0 22px 40px -20px rgba(0,0,0,.6); }
+.tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
+.art { aspect-ratio: 16 / 10; max-width: 100%; position: relative; display: block; }
+.art canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.info { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 6px; }
+.name { font-size: 28px; line-height: 1; }
+.desc { font-size: 14.5px; line-height: 1.45; opacity: .82; }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.tags i { font-style: normal; font-size: 12px; font-weight: 500; padding: 3px 9px; border-radius: 99px; background: rgba(255,255,255,.14); }
+
+.t-mouse { --t-bg: #0b0d14; --t-fg: #eef0f8; }
+.t-mouse .name { font-family: "Bricolage Grotesque", sans-serif; font-weight: 800; letter-spacing: -.02em; }
+.t-pig { --t-bg: #3a2514; --t-fg: #f5e6c8; }
+.t-pig .name { font-family: "Rye", Georgia, serif; color: #e8b04a; font-size: 26px; }
+.t-pig .tags i { background: rgba(232,176,74,.18); }
+.t-kart { --t-bg: #2a2275; --t-fg: #ffffff; }
+.t-kart .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffd23f; text-shadow: 2px 2px 0 #ff3d6e; }
+
+footer { text-align: center; color: var(--muted); font-size: 13px; }
+
+/* game view */
+.player { position: fixed; inset: 0; display: flex; flex-direction: column; background: #000; z-index: 20; }
+.bar {
+  flex: none; display: flex; align-items: center; gap: 12px; height: 44px; box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px); height: calc(44px + env(safe-area-inset-top, 0px));
+  padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+  background: var(--bar); color: var(--fg); border-bottom: 1px solid var(--line);
+}
+.back {
+  all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  font: 500 14px var(--body); padding: 6px 10px; border-radius: 10px;
+}
+.back:hover { background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.back:focus-visible { outline: 2px solid var(--accent); }
+.bar b { font-family: var(--display); font-weight: 800; font-size: 16px; letter-spacing: -.01em; }
+.bar .next { margin-left: auto; display: flex; gap: 4px; }
+.bar .next button { all: unset; cursor: pointer; font: 13px var(--body); color: var(--muted); padding: 5px 9px; border-radius: 8px; }
+.bar .next button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); }
+.bar .next button[aria-current="true"] { color: var(--fg); font-weight: 500; }
+.player iframe { flex: 1; width: 100%; border: 0; display: block; background: #000; }
+@media (max-width: 560px) { .bar .next { display: none; } }
+@media (prefers-reduced-motion: reduce) { .tile, h1 span { transition: none; } }
+</style>
+
+<main class="home" id="home">
+  <header>
+    <h1 aria-label="Legepladsen"><span>Le</span><span>ge</span><span>plad</span><span>sen</span></h1>
+    <p class="lead">Tre små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
+  </header>
+  <section class="grid" aria-label="Spil">
+    <button class="tile t-mouse" type="button" data-game="musefelt">
+      <span class="art"><canvas data-art="mouse" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Musefelt</span>
+        <span class="desc">Seks levende lærreder der reagerer på din mus. Fang ildfluer, skyd fisk afsted og pop bobleplast.</span>
+        <span class="tags"><i>Mus eller touch</i><i>6 tilstande</i></span>
+      </span>
+    </button>
+    <button class="tile t-pig" type="button" data-game="piggy-smash">
+      <span class="art"><canvas data-art="pig" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Piggy Smash</span>
+        <span class="desc">Smash sparegrise i ørkenen, find kister og lås evner op. Hver dag kommer der hårdere grise. På engelsk.</span>
+        <span class="tags"><i>Idle-spil</i><i>Gemmer fremskridt</i></span>
+      </span>
+    </button>
+    <button class="tile t-kart" type="button" data-game="kart-kaos">
+      <span class="art"><canvas data-art="kart" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Kart Kaos</span>
+        <span class="desc">Arenakamp i 3D-karts med raketter, drift og olie. Mod bots eller venner i en lobby.</span>
+        <span class="tags"><i>Tastatur</i><i>3 baner</i><i>Online</i></span>
+      </span>
+    </button>
+  </section>
+  <footer>Tryk på et spil for at åbne det. Tilbage-knappen øverst fører dig hertil igen.</footer>
+</main>
+
+<div class="player" id="player" hidden>
+  <div class="bar">
+    <button class="back" id="back" type="button">← Legepladsen</button>
+    <b id="gameName"></b>
+    <nav class="next" id="switcher" aria-label="Skift spil"></nav>
+  </div>
+  <iframe id="frame" title="Spil" allow="fullscreen; autoplay"></iframe>
+</div>
+
+<script>
+(() => {
+  const GAMES = {
+    'musefelt': { name: 'Musefelt', src: 'games/musefelt.html' },
+    'piggy-smash': { name: 'Piggy Smash', src: 'games/piggy-smash.html' },
+    'kart-kaos': { name: 'Kart Kaos', src: 'games/kart-kaos.html' },
+  };
+  const home = document.getElementById('home'), player = document.getElementById('player');
+  const frame = document.getElementById('frame'), nameEl = document.getElementById('gameName');
+  const sw = document.getElementById('switcher');
+  for (const [id, g] of Object.entries(GAMES)) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = g.name; b.dataset.game = id;
+    b.onclick = () => go(id); sw.appendChild(b);
+  }
+  let current = null;
+  function show(id) {
+    const g = GAMES[id];
+    if (!g) {
+      current = null; player.hidden = true; home.hidden = false; frame.removeAttribute('src');
+      document.title = 'Legepladsen'; startArt(); return;
+    }
+    if (current !== id) { frame.src = g.src; current = id; }
+    nameEl.textContent = g.name; document.title = g.name + ' · Legepladsen';
+    sw.querySelectorAll('button').forEach(b => b.setAttribute('aria-current', b.dataset.game === id ? 'true' : 'false'));
+    home.hidden = true; player.hidden = false; stopArt();
+  }
+  function go(id) { if (location.hash !== '#' + (id || '')) location.hash = id || ''; else show(id); }
+  frame.addEventListener('load', () => { try { frame.contentWindow.focus(); } catch (e) {} });
+  document.querySelectorAll('.tile').forEach(t => t.addEventListener('click', () => go(t.dataset.game)));
+  document.getElementById('back').onclick = () => go('');
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
+
+  /* small live pictures on each tile */
+  const arts = [...document.querySelectorAll('canvas[data-art]')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let raf = 0, t0 = performance.now();
+  const flies = Array.from({ length: 26 }, () => ({ x: Math.random(), y: Math.random(), a: Math.random() * 6.28, p: Math.random() * 6 }));
+  const pigs = [{ x: .3, y: .6, a: .4, s: 1 }, { x: .68, y: .38, a: 2.6, s: .85 }, { x: .58, y: .76, a: 4, s: .7 }];
+  function fit(c) {
+    const r = c.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+    if (c.width !== Math.round(r.width * d)) { c.width = Math.round(r.width * d); c.height = Math.round(r.height * d); }
+    const g = c.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0); return [g, r.width, r.height];
+  }
+  function drawMouse(c, t) {
+    const [g, W, H] = fit(c);
+    g.fillStyle = '#0b0d14'; g.fillRect(0, 0, W, H);
+    const mx = W / 2 + Math.cos(t * .7) * W * .25, my = H / 2 + Math.sin(t * 1.1) * H * .22;
+    g.globalCompositeOperation = 'lighter';
+    for (const f of flies) {
+      if (!reduce) { f.a += (Math.random() - .5) * .2; f.x += Math.cos(f.a) * .0016; f.y += Math.sin(f.a) * .0024; }
+      const dx = mx - f.x * W, dy = my - f.y * H, d = Math.hypot(dx, dy) || 1;
+      if (!reduce && d < 90) { f.x -= dx / d * .004; f.y -= dy / d * .006; }
+      f.x = (f.x + 1) % 1; f.y = (f.y + 1) % 1;
+      const b = .4 + .6 * Math.max(0, Math.sin(t * 2 + f.p)), x = f.x * W, y = f.y * H;
+      const gr = g.createRadialGradient(x, y, 0, x, y, 16); gr.addColorStop(0, `hsla(55,70%,70%,${.5 * b})`); gr.addColorStop(1, 'hsla(55,70%,70%,0)');
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, 16, 0, 6.28); g.fill();
+      g.fillStyle = `hsla(55,60%,88%,${.5 + .5 * b})`; g.beginPath(); g.arc(x, y, 1.8, 0, 6.28); g.fill();
+    }
+    g.globalCompositeOperation = 'source-over';
+    g.strokeStyle = 'rgba(61,123,255,.7)'; g.lineWidth = 2; g.beginPath(); g.arc(mx, my, 10 + Math.sin(t * 4) * 2, 0, 6.28); g.stroke();
+  }
+  function drawPig(c, t) {
+    const [g, W, H] = fit(c);
+    const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#e2bd86'); bg.addColorStop(1, '#cf9f63');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.fillStyle = 'rgba(120,75,35,.25)'; for (let i = 0; i < 60; i++) g.fillRect((i * 97.3) % W, (i * 53.7) % H, 2, 2);
+    const s0 = Math.min(W, H) / 9;
+    for (const p of pigs) {
+      if (!reduce) { p.a += Math.sin(t + p.s * 9) * .01; p.x += Math.cos(p.a) * .0012; p.y += Math.sin(p.a) * .0016; }
+      if (p.x < .12 || p.x > .88) p.a = Math.PI - p.a; if (p.y < .18 || p.y > .85) p.a = -p.a;
+      p.x = Math.min(.88, Math.max(.12, p.x)); p.y = Math.min(.85, Math.max(.18, p.y));
+      const s = s0 * p.s, x = p.x * W, y = p.y * H;
+      g.save(); g.translate(x, y); g.fillStyle = 'rgba(60,30,8,.25)'; g.beginPath(); g.ellipse(4, 6, s * 1.2, s * .9, 0, 0, 6.28); g.fill();
+      g.rotate(p.a);
+      g.fillStyle = '#b85d36'; g.beginPath(); g.moveTo(s * .45, -s * .52); g.lineTo(s * .95, -s * .8); g.lineTo(s * .82, -s * .3); g.fill();
+      g.beginPath(); g.moveTo(s * .45, s * .52); g.lineTo(s * .95, s * .8); g.lineTo(s * .82, s * .3); g.fill();
+      const gr = g.createRadialGradient(s * .2, -s * .25, s * .1, 0, 0, s * 1.2); gr.addColorStop(0, '#f0ad8c'); gr.addColorStop(1, '#a24e2c');
+      g.fillStyle = gr; g.beginPath(); g.ellipse(0, 0, s * 1.15, s * .82, 0, 0, 6.28); g.fill();
+      g.fillStyle = 'rgba(20,10,4,.75)'; g.fillRect(-s * .62, -s * .07, s * .55, s * .14);
+      g.fillStyle = '#f0ad8c'; g.beginPath(); g.ellipse(s * 1.08, 0, s * .22, s * .3, 0, 0, 6.28); g.fill();
+      g.fillStyle = '#1c0f06'; g.beginPath(); g.arc(s * .76, -s * .3, s * .075, 0, 6.28); g.arc(s * .76, s * .3, s * .075, 0, 6.28); g.fill();
+      g.restore();
+    }
+    const hx = W * .5 + Math.cos(t * .6) * W * .2, hy = H * .5 + Math.sin(t * .9) * H * .15, lift = Math.abs(Math.sin(t * 2.4)), k = s0 / 26;
+    g.save(); g.translate(hx, hy - lift * 18 * k); g.rotate(-.5);
+    g.fillStyle = '#9a6236'; g.fillRect(-5 * k, 8 * k, 10 * k, 70 * k);
+    const mg = g.createLinearGradient(0, -14 * k, 0, 14 * k); mg.addColorStop(0, '#d4dbe1'); mg.addColorStop(1, '#4b535b');
+    g.fillStyle = mg; g.fillRect(-30 * k, -14 * k, 60 * k, 28 * k); g.restore();
+  }
+  function drawKart(c, t) {
+    const [g, W, H] = fit(c);
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#5fb8ff'); sky.addColorStop(.55, '#a6dcff'); sky.addColorStop(.551, '#7f74d6'); sky.addColorStop(1, '#3a3096');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    const hor = H * .55, cx = W / 2;
+    g.strokeStyle = 'rgba(255,255,255,.25)'; g.lineWidth = 1;
+    for (let i = 0; i < 12; i++) { const z = ((i / 12 + t * .35) % 1), y = hor + (H - hor) * z * z; g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+    for (let i = -6; i <= 6; i++) { g.beginPath(); g.moveTo(cx + i * 6, hor); g.lineTo(cx + i * W * .22, H); g.stroke(); }
+    const cols = ['#7b61ff', '#ff7a59', '#3ed6b0', '#ffb13d'];
+    for (let i = 0; i < 4; i++) { const x = W * (.12 + i * .25), h = H * .16; g.fillStyle = cols[i]; g.fillRect(x - 7, hor - h, 14, h); g.fillStyle = '#fff'; g.fillRect(x - 8, hor - h - 4, 16, 4); }
+    const k = Math.min(W, H) / 200, bob = reduce ? 0 : Math.sin(t * 8) * 1.5, kx = cx + Math.sin(t * .9) * W * .12, ky = H * .82 + bob;
+    g.save(); g.translate(kx, ky); g.scale(k, k); g.rotate(Math.sin(t * .9 + 1.57) * -.06);
+    g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(0, 20, 48, 8, 0, 0, 6.28); g.fill();
+    g.fillStyle = '#14161d'; g.fillRect(-46, -2, 18, 22); g.fillRect(28, -2, 18, 22);
+    g.fillStyle = '#e63946'; g.fillRect(-32, -14, 64, 26); g.fillStyle = '#22263a'; g.fillRect(-40, 4, 80, 8);
+    g.fillStyle = '#e63946'; g.fillRect(-36, -26, 72, 6);
+    g.fillStyle = '#e63946'; g.beginPath(); g.arc(0, -34, 13, 0, 6.28); g.fill();
+    g.fillStyle = '#1b2a55'; g.fillRect(-9, -36, 18, 6);
+    g.restore();
+    if (!reduce && Math.floor(t * 2) % 3 === 0) { g.fillStyle = 'rgba(255,210,63,.9)'; g.beginPath(); g.arc(kx - 30 * k, ky + 10 * k, 4 * k, 0, 6.28); g.arc(kx + 30 * k, ky + 10 * k, 4 * k, 0, 6.28); g.fill(); }
+    g.font = `${Math.round(22 * k)}px Bungee, "Arial Black", sans-serif`; g.fillStyle = '#fff'; g.textAlign = 'center';
+    g.strokeStyle = '#5a1030'; g.lineWidth = 4 * k;
+    const by = hor - H * .3 + Math.sin(t * 2.5) * 4, bx = W * .78;
+    g.fillStyle = '#ff3d6e'; g.fillRect(bx - 14 * k, by - 14 * k, 28 * k, 28 * k); g.fillStyle = '#fff'; g.fillText('?', bx, by + 8 * k);
+  }
+  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart };
+  function frameArt(now) {
+    const t = (now - t0) / 1000;
+    for (const c of arts) { try { DRAW[c.dataset.art](c, reduce ? 1 : t); } catch (e) {} }
+    if (!reduce) raf = requestAnimationFrame(frameArt);
+  }
+  function startArt() { cancelAnimationFrame(raf); raf = requestAnimationFrame(frameArt); }
+  function stopArt() { cancelAnimationFrame(raf); }
+  addEventListener('resize', () => { if (!home.hidden && reduce) frameArt(performance.now()); });
+  document.fonts && document.fonts.ready.then(() => { if (!home.hidden) startArt(); });
+  show(location.hash.slice(1));
+})();
+</script>
+
+</body></html>

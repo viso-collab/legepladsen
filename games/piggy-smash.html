@@ -1,0 +1,1247 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Piggy Smash</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Zilla+Slab:wght@400;600;700&display=swap">
+<style>
+/* Layout: top-down desert yard on the left where piggy banks roam, a plank-wood counter with tabs on the right; stacks on phones */
+:root{
+  --bg:#22150c; --panel:#3a2514; --panel-2:#4a2f19; --line:#6b4627;
+  --fg:#f5e6c8; --muted:#caa97c; --gold:#e8b04a; --gold-ink:#2b1806; --red:#c2452d;
+  --display:'Rye','Rockwell Extra Bold',Georgia,serif;
+  --body:'Zilla Slab',Rockwell,Georgia,serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+.app{height:100%;display:flex;flex-direction:column;gap:12px;max-width:1320px;margin:0 auto;box-sizing:border-box;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px}
+.bar{display:flex;align-items:center;gap:12px 22px;flex-wrap:wrap}
+.brand{font-family:var(--display);font-size:30px;color:var(--gold);line-height:1;margin-right:auto;text-shadow:0 3px 0 #120a05}
+.brand small{display:block;font-family:var(--body);font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-top:6px;text-shadow:none}
+.stats{display:flex;gap:22px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;line-height:1.1}
+.stat b{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
+.stat.cash b{color:var(--gold)}
+.iconbtn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer}
+.iconbtn:hover{background:var(--panel-2)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:12px}
+.stage{position:relative;border-radius:10px;overflow:hidden;min-height:440px;background:#d6aa70;touch-action:none;user-select:none;-webkit-user-select:none;
+  border:6px solid #5a371a;box-shadow:inset 0 0 0 2px #2a170a,0 0 0 2px #2a170a}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage.mouse{cursor:none}
+.daybox{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(300px,70%);text-align:center;pointer-events:none;
+  background:rgba(43,24,8,.85);border:1px solid #7a5230;border-radius:8px;padding:7px 12px 9px}
+.dayname{font-family:var(--display);font-size:17px;color:var(--gold);display:flex;justify-content:center;gap:10px}
+.dayname .clock{color:var(--fg);font-variant-numeric:tabular-nums}
+.dayname .clock.hurry{color:#ff6a4a}
+.daybar{margin-top:5px;height:8px;border-radius:99px;background:rgba(0,0,0,.45);overflow:hidden}
+.daybar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#c2452d,#e8b04a);transition:width .2s}
+.daybar.done i{background:#7fc46a}
+.daytxt{font-size:12px;font-weight:700;margin-top:4px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dayover{position:absolute;inset:0;display:grid;place-items:center;background:rgba(30,16,6,.5);padding:16px}
+.dcard{width:min(340px,100%);box-sizing:border-box;background:var(--panel);border:2px solid #7a5230;border-radius:12px;padding:20px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+.dcard h2{font-family:var(--display);font-weight:400;font-size:26px;margin:0 0 6px;color:var(--gold);text-wrap:balance}
+.dcard h2.fail{color:#ff8a6a}
+.dcard p{margin:4px 0;color:var(--muted);line-height:1.45}
+.dcard p b{color:var(--fg)}
+.dcard .unlock{color:#ffd257;font-weight:700;margin-top:10px}
+.dcard .btn{margin-top:16px}
+.equip-chip{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:10px;background:rgba(43,24,8,.85);border:1px solid #7a5230;border-radius:10px;padding:7px 12px 7px 7px;cursor:pointer;max-width:calc(100% - 20px);text-align:left}
+.equip-chip .ic{width:34px;height:34px;flex:none}
+.equip-chip .t1{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.equip-chip .t2{font-weight:700;font-size:15px}
+.hint{position:absolute;right:12px;bottom:14px;font-size:13px;color:#4a2c12;font-weight:700;pointer-events:none}
+
+.panel{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.12) 0 2px,transparent 2px 54px),var(--panel)}
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:2px solid #24150a;background:rgba(0,0,0,.18)}
+.tab{background:none;border:0;padding:14px 4px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer;display:flex;justify-content:center;align-items:center;gap:6px}
+.tab[aria-selected="true"]{color:var(--fg);box-shadow:inset 0 -3px 0 var(--gold)}
+.badge{background:var(--red);color:#fff;border-radius:99px;font-size:12px;min-width:20px;height:20px;line-height:20px;padding:0 6px;box-sizing:border-box}
+.badge[data-zero="1"]{display:none}
+.pbody{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
+.sect-h{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;display:flex;justify-content:space-between}
+.card{background:rgba(20,10,4,.35);border:1px solid rgba(255,220,160,.08);border-radius:10px;padding:12px}
+
+.chest-card{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.chest-card canvas{width:200px;height:150px;max-width:100%}
+.chest-count{font-family:var(--display);font-size:26px;color:var(--gold)}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+.legend div{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center}
+.legend i{width:12px;height:12px;border-radius:3px}
+.legend b{font-variant-numeric:tabular-nums;color:var(--muted)}
+.odds{display:flex;height:10px;border-radius:99px;overflow:hidden;background:rgba(0,0,0,.3)}
+.odds i{display:block;height:100%}
+.btn{background:var(--gold);color:var(--gold-ink);border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:15px;white-space:nowrap;box-shadow:0 3px 0 #9a6a1c}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #9a6a1c}
+.btn:disabled{background:#4d3a28;color:#8a7358;box-shadow:none;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);box-shadow:none}
+.btn.danger{background:transparent;color:#e67a5f;border:1px solid currentColor;box-shadow:none}
+.btn.big{font-size:17px;padding:12px 22px}
+.note{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
+
+.ab-group{display:flex;flex-direction:column;gap:8px}
+.ab{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(20,10,4,.35);border-radius:10px;padding:10px;border:1px solid transparent}
+.ab.equipped{border-color:var(--rc);box-shadow:0 0 0 1px var(--rc) inset,0 0 18px -6px var(--rc)}
+.ab.locked{opacity:.5}
+.ab .ic{width:44px;height:44px}
+.ab-name{font-weight:700;font-size:15px}
+.ab-desc{font-size:13.5px;color:var(--muted);line-height:1.35;margin-top:2px}
+.pips{display:flex;gap:3px;margin-top:5px}
+.pips i{width:12px;height:4px;border-radius:2px;background:rgba(255,255,255,.12)}
+.pips i.on{background:var(--rc)}
+.ab .btn{padding:8px 11px;font-size:14px}
+.badgeic{display:grid;place-items:center;width:100%;height:100%;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:var(--rc);color:#1a0f06;font-weight:700;font-size:15px;line-height:1;padding-top:3px;box-sizing:border-box}
+.badgeic.dim{background:#5a4430;color:#8a7358}
+
+.kind{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}
+.kind canvas{width:64px;height:48px}
+.kind.locked .kn{color:var(--muted)}
+.kind.newest{border-color:var(--gold)}
+.kn{font-weight:700;font-size:16px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.kn em{font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink);background:var(--gold);border-radius:4px;padding:1px 6px}
+.traits{font-size:13.5px;line-height:1.4;margin-top:6px;display:flex;flex-direction:column;gap:2px}
+.traits b{color:var(--gold);font-weight:700}
+.shop-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center}
+.si-name{font-weight:700;font-size:16px}
+.si-sub{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
+.si-sub b{color:var(--fg)}
+
+.modal{position:fixed;inset:0;z-index:50;background:rgba(15,8,3,.85);display:grid;place-items:center;padding:16px}
+.modal-card{width:min(420px,100%);display:flex;flex-direction:column;align-items:center;gap:10px}
+#chestCv{width:min(340px,90vw);height:min(260px,68vw);cursor:pointer}
+.modal-hint{font-weight:700;color:var(--muted);font-size:14px}
+.reveal{width:100%;box-sizing:border-box;background:var(--panel);border:2px solid var(--rc);border-radius:12px;padding:18px;text-align:center;box-shadow:0 0 40px -10px var(--rc);animation:pop .35s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.rv-rar{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--rc)}
+.rv-ic{width:68px;height:68px;margin:10px auto 6px}
+.rv-ic .badgeic{font-size:24px}
+.rv-name{font-family:var(--display);font-size:26px;line-height:1.15;text-wrap:balance}
+.rv-desc{color:var(--muted);margin-top:6px;line-height:1.4}
+.rv-note{margin-top:10px;font-weight:700;color:var(--gold)}
+.rv-list{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:44vh;overflow:auto;text-align:left}
+.rv-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(20,10,4,.35);border-radius:8px;padding:7px 8px;border-left:3px solid var(--rc)}
+.rv-row .ic{width:36px;height:36px}
+.rv-row .btn{padding:6px 10px;font-size:13px}
+.rv-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
+
+.toasts{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:60;pointer-events:none;width:min(360px,calc(100% - 32px))}
+.toast{background:var(--panel-2);border:1px solid var(--line);border-left:4px solid var(--tc,var(--gold));border-radius:8px;padding:10px 14px;font-weight:700;font-size:15px;animation:tin .25s ease-out;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+@keyframes tin{from{transform:translateY(-8px);opacity:0}}
+
+@media (max-width:880px){
+  .app{height:auto;min-height:100%}
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .stage{min-height:0;height:58svh;max-height:600px}
+  .pbody{overflow:visible}
+  .hint{display:none}
+  .brand{font-size:24px}
+}
+@media (prefers-reduced-motion:reduce){.reveal,.toast{animation:none}}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <div class="brand">Piggy Smash<small>Smash piggy banks · find chests · equip one ability</small></div>
+    <div class="stats">
+      <div class="stat cash"><b id="hCash">$0</b><span>Cash</span></div>
+      <div class="stat"><b id="hDay">1</b><span>Day</span></div>
+      <div class="stat"><b id="hSmashed">0</b><span>Smashed</span></div>
+    </div>
+    <button class="iconbtn" id="muteBtn" type="button">Sound: on</button>
+  </header>
+
+  <main class="layout">
+    <section class="stage" id="stage" aria-label="Desert yard. Move the hammer over the piggy banks; it swings on its own.">
+      <canvas id="cv"></canvas>
+      <div class="daybox">
+        <div class="dayname"><span id="dayName">Day 1</span><span class="clock" id="dayClock">0:30</span></div>
+        <div class="daybar" id="dayBarWrap"><i id="dayBar"></i></div>
+        <div class="daytxt" id="dayTxt">0 / 8 piggies</div>
+        <div class="daytxt" id="dayNext" style="color:#ffd257"></div>
+      </div>
+      <button class="equip-chip" id="equipChip" type="button"></button>
+      <div class="hint">Move your hammer over the piggies. It swings on its own.</div>
+      <div class="dayover" id="dayOver">
+        <div class="dcard">
+          <h2 id="doTitle">Day 1</h2>
+          <div id="doBody"></div>
+          <button class="btn big" id="startDay" type="button">Start day 1</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <nav class="tabs" role="tablist">
+        <button class="tab" role="tab" aria-selected="true" data-tab="chest" type="button">Chests <span class="badge" id="chestBadge">0</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="abil" type="button">Abilities <span class="badge" id="abilBadge" data-zero="1">0</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="pigs" type="button">Piggies</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="shop" type="button">Store</button>
+      </nav>
+
+      <div class="pbody" id="p-chest">
+        <div class="card chest-card">
+          <canvas id="chestPreview" aria-hidden="true"></canvas>
+          <div class="chest-count" id="chestCount">× 0</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+            <button class="btn big" id="openBtn" type="button">Open 1</button>
+            <button class="btn big" id="open10Btn" type="button">Open 10</button>
+            <button class="btn big" id="openAllBtn" type="button">Open all</button>
+          </div>
+        </div>
+        <div class="card" style="display:flex;flex-direction:column;gap:10px">
+          <div class="sect-h"><span>What’s inside</span></div>
+          <div class="odds" id="oddsBar"></div>
+          <div class="legend" id="legend"></div>
+        </div>
+        <p class="note">Every piggy you smash has a small chance to drop a chest. Iron, Banker and Golden Piggies drop chests more often. Getting an ability you already own levels it up (max 5). The day clock pauses while you open chests.</p>
+      </div>
+
+      <div class="pbody" id="p-abil" hidden>
+        <div class="sect-h"><span>Abilities</span><span id="abilCount"></span></div>
+        <p class="note">You can only equip one ability at a time.</p>
+        <div id="abilList" style="display:flex;flex-direction:column;gap:16px"></div>
+      </div>
+
+      <div class="pbody" id="p-pigs" hidden>
+        <div class="sect-h"><span>Piggies</span><span id="kindCount"></span></div>
+        <p class="note">New piggies show up as you clear days. Later piggies are tougher but pay a lot more, and every piggy has its own tricks. The yard mixes in your four newest piggies.</p>
+        <div id="kindList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
+      <div class="pbody" id="p-shop" hidden>
+        <div class="sect-h"><span>General Store</span></div>
+        <div class="card shop-item">
+          <div><div class="si-name">Quick Wrist <span id="sSpdLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sSpdSub"></div></div>
+          <button class="btn" id="buySpeed" type="button"></button>
+        </div>
+        <div class="card shop-item">
+          <div><div class="si-name">Heavy Hammer <span id="sHamLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sHamSub"></div></div>
+          <button class="btn" id="buyHammer" type="button"></button>
+        </div>
+        <div class="card shop-item">
+          <div><div class="si-name">Pocket Watch <span id="sWatchLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sWatchSub"></div></div>
+          <button class="btn" id="buyWatch" type="button"></button>
+        </div>
+        <div class="card shop-item">
+          <div><div class="si-name">Lucky Horseshoe <span id="sLuckLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sLuckSub"></div></div>
+          <button class="btn" id="buyLuck" type="button"></button>
+        </div>
+        <div class="sect-h" style="margin-top:6px"><span>Record</span></div>
+        <div class="si-sub" id="statsTxt" style="line-height:1.8"></div>
+        <div style="margin-top:auto;padding-top:10px"><button class="btn danger" id="resetBtn" type="button">Reset game</button></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-card">
+    <canvas id="chestCv"></canvas>
+    <div class="modal-hint" id="modalHint">Opening… tap to skip</div>
+    <div class="reveal" id="reveal" hidden>
+      <div class="rv-rar" id="rvRar"></div>
+      <div class="rv-ic" id="rvIc"></div>
+      <div class="rv-name" id="rvName"></div>
+      <div class="rv-desc" id="rvDesc"></div>
+      <div class="rv-note" id="rvNote"></div>
+      <div class="rv-list" id="rvList" hidden></div>
+      <div class="rv-actions">
+        <button class="btn" id="rvEquip" type="button">Equip</button>
+        <button class="btn ghost" id="rvAgain" type="button">Open another</button>
+        <button class="btn ghost" id="rvClose" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toasts" id="toasts"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const KEY = 'splinter-gulch-v3';
+const GAME = 'pigs1';
+const TAU = Math.PI * 2;
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const num1 = x => String(Math.round(x * 10) / 10);
+const num2 = x => (Math.round(x * 100) / 100).toFixed(2);
+const pc = x => Math.round(x * 100) + '%';
+function fmt(n) {
+  n = Math.floor(n);
+  if (n < 1000) return String(n);
+  const u = ['k', 'M', 'B', 'T', 'Q']; let i = -1;
+  while (n >= 1000 && i < u.length - 1) { n /= 1000; i++; }
+  return (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : Math.floor(n)) + u[i];
+}
+const cash = n => '$' + fmt(n);
+const clock = t => { t = Math.max(0, Math.ceil(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
+
+/* ---------- Abilities ---------- */
+const RAR = {
+  common:    { name: 'Common',    color: '#cfc3ac', val: 40 },
+  rare:      { name: 'Rare',      color: '#4ea8ff', val: 120 },
+  epic:      { name: 'Epic',      color: '#b977ff', val: 400 },
+  legendary: { name: 'Legendary', color: '#ffb22e', val: 1500 },
+  mythic:    { name: 'Mythic',    color: '#ff4f7b', val: 6000 },
+};
+const RORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+const ODDS = { common: 58, rare: 29.4, epic: 11, legendary: 1.2, mythic: 0.4 };
+const MAXLV = 5;
+const sc = l => 1 + 0.25 * (l - 1);
+// All ability damage is a multiple of your hammer damage (no % of health), and nothing hits the whole yard on every swing.
+const AB = [
+  { id: 'heavy', r: 'common', name: 'Heavy Head', icon: 'H', fx: l => ({ dmgMult: 1 + 0.4 * sc(l) }), desc: l => `+${pc(0.4 * sc(l))} damage per swing` },
+  { id: 'greedy', r: 'common', name: 'Greedy', icon: '$', fx: l => ({ coinMult: 1 + 0.5 * sc(l) }), desc: l => `+${pc(0.5 * sc(l))} cash` },
+  { id: 'brittle', r: 'common', name: 'Brittle Clay', icon: 'B', fx: l => ({ hpMult: 1 - Math.min(0.5, 0.15 * sc(l)) }), desc: l => `New piggies have ${pc(Math.min(0.5, 0.15 * sc(l)))} less health` },
+  { id: 'crit', r: 'rare', name: 'Critical Hit', icon: '!', fx: l => ({ critChance: Math.min(0.6, 0.2 * sc(l)), critMult: 3 }), desc: l => `${pc(Math.min(0.6, 0.2 * sc(l)))} chance to deal 3× damage` },
+  { id: 'quick', r: 'rare', name: 'Quick Draw', icon: '»', fx: l => ({ speedMult: 1 + 0.3 * sc(l) }), desc: l => `Swing ${pc(0.3 * sc(l))} faster` },
+  { id: 'prospector', r: 'rare', name: 'Prospector', icon: '◎', fx: l => ({ chestBonus: 0.06 * sc(l) }), desc: l => `+${pc(0.06 * sc(l))} chest chance on every piggy` },
+  { id: 'wide', r: 'epic', name: 'Wide Swing', icon: 'W', fx: l => ({ radiusMult: 1 + 0.5 * sc(l) }), desc: l => `Hit area ${pc(0.5 * sc(l))} bigger` },
+  { id: 'dynamite', r: 'epic', name: 'Dynamite', icon: '*', fx: l => ({ dynEvery: 5, dynMult: 4 + (l - 1) }), desc: l => `Every 5th swing explodes for ${4 + (l - 1)}× damage in a wider blast` },
+  { id: 'goldrush', r: 'epic', name: 'Gold Rush', icon: 'G', fx: l => ({ coinMult: 1 + 1.5 * sc(l) }), desc: l => `${num1(1 + 1.5 * sc(l))}× cash` },
+  { id: 'ricochet', r: 'epic', name: 'Ricochet', icon: '↯', fx: l => ({ ricochet: 0.5 * sc(l) }), desc: l => `Every swing bounces to the nearest piggy outside your hit area for ${pc(0.5 * sc(l))} damage` },
+  { id: 'thunder', r: 'legendary', name: 'Thunderstrike', icon: 'ϟ', fx: l => ({ boltEvery: 2, boltMult: 4 + (l - 1) }), desc: l => `Lightning hits a random piggy every 2 s for ${4 + (l - 1)}× damage` },
+  { id: 'lasso', r: 'legendary', name: 'Lasso', icon: 'O', fx: l => ({ pull: 1.2 * sc(l), dmgMult: 1.25 }), desc: l => `Nearby piggies get pulled toward your hammer${l > 1 ? ' harder' : ''}, +25% damage` },
+  { id: 'quake', r: 'legendary', name: 'Earthquake', icon: '≋', fx: l => ({ quakeChance: Math.min(0.4, 0.15 * sc(l)) }), desc: l => `${pc(Math.min(0.4, 0.15 * sc(l)))} chance per swing to shake the yard for 1× damage on every piggy` },
+  { id: 'chain', r: 'legendary', name: 'Chain Reaction', icon: '✹', fx: l => ({ chainMult: 1 + 0.5 * (l - 1) }), desc: l => `Every smashed piggy explodes for ${num1(1 + 0.5 * (l - 1))}× damage on piggies nearby` },
+  { id: 'midas', r: 'mythic', name: 'Midas’ Fist', icon: '♛', fx: l => ({ coinMult: 1 + 3 * sc(l), critChance: 0.3, critMult: 4, speedMult: 1 + 0.5 * sc(l) }), desc: l => `${num1(1 + 3 * sc(l))}× cash, ${pc(0.5 * sc(l))} faster swings, 30% chance for 4× damage` },
+  { id: 'ghost', r: 'mythic', name: 'Ghost Town', icon: '☠', fx: l => ({ ghostEvery: Math.max(4, 8 - (l - 1)) }), desc: l => `Every ${Math.max(4, 8 - (l - 1))} s your next swing hits every piggy in the yard` },
+  { id: 'stampede', r: 'mythic', name: 'Stampede', icon: '♞', fx: l => ({ stampedeEvery: 10, stampedeMult: 6 + 2 * (l - 1) }), desc: l => `Every 10 s a cattle stampede charges through one lane of the yard for ${6 + 2 * (l - 1)}× damage` },
+];
+const ABMAP = Object.fromEntries(AB.map(a => [a.id, a]));
+
+/* ---------- Piggies ---------- */
+const KINDS = [
+  { id: 'clay',   name: 'Clay Piggy',   unlock: 1,  w: 22, hp: 1,   coin: 1,   chest: 1,   speed: 1.3,  pal: { a: '#e3906a', b: '#a24e2c', snout: '#f0ad8c', ear: '#b85d36' } },
+  { id: 'straw',  name: 'Straw Piggy',  unlock: 2,  w: 23, hp: 2,   coin: 2.2, chest: 1,   speed: 1.15, pal: { a: '#f0d071', b: '#b98f2e', snout: '#f6dd92', ear: '#c99a34' } },
+  { id: 'nest',   name: 'Nesting Piggy',unlock: 4,  w: 25, hp: 4,   coin: 4.5, chest: 1,   speed: 1,    pal: { a: '#d39b5a', b: '#8d5f30', snout: '#e2b47c', ear: '#9b6a36' } },
+  { id: 'powder', name: 'Powder Piggy', unlock: 6,  w: 24, hp: 7,   coin: 8,   chest: 1,   speed: 1,    pal: { a: '#55555c', b: '#1d1d20', snout: '#6a6a72', ear: '#2c2c30' } },
+  { id: 'rowdy',  name: 'Rowdy Piggy',  unlock: 8,  w: 24, hp: 12,  coin: 14,  chest: 1,   speed: 1.1,  pal: { a: '#e65a4c', b: '#8e1f18', snout: '#f08a7e', ear: '#a8281f' } },
+  { id: 'iron',   name: 'Iron Piggy',   unlock: 11, w: 26, hp: 22,  coin: 26,  chest: 2,   speed: .8,   pal: { a: '#a8b1bb', b: '#4b545e', snout: '#bcc4cc', ear: '#5d6670' } },
+  { id: 'miner',  name: 'Miner Piggy',  unlock: 15, w: 25, hp: 40,  coin: 48,  chest: 1.2, speed: .85,  pal: { a: '#e7a3a0', b: '#a0605a', snout: '#f2bdb9', ear: '#b06e68' } },
+  { id: 'bank',   name: 'Banker Piggy', unlock: 20, w: 28, hp: 80,  coin: 95,  chest: 2,   speed: .65,  pal: { a: '#b7c7d4', b: '#4e6070', snout: '#c9d6e0', ear: '#5f7282' } },
+  { id: 'golden', name: 'Golden Piggy', unlock: 26, w: 25, hp: 160, coin: 200, chest: 2.5, speed: .9,   pal: { a: '#fff0a0', b: '#c98a12', snout: '#ffe27a', ear: '#d99a1e' }, glow: 'rgba(255,210,80,.8)' },
+];
+KINDS.forEach(k => { k.rad = 1.05; k.shard = [k.pal.a, k.pal.b, k.pal.snout]; });
+const TRAITS = {
+  clay:   [['When smashed', 'Shards fly out and hit piggies close by for 1× damage']],
+  straw:  [['When hit', 'Gets spooked and dashes away']],
+  nest:   [['When smashed', 'Two Clay Piggies pop out']],
+  powder: [['When smashed', 'Explodes for 3× damage on piggies nearby']],
+  rowdy:  [['When hit', 'Goes on a 3 s rampage, ramming other piggies for 2× damage']],
+  iron:   [['Armored', 'Takes 40% less damage until below half health'], ['When smashed', '2× chest chance']],
+  miner:  [['When hit', 'Runs faster and faster'], ['When smashed', 'Spills gold nuggets for +50% cash']],
+  bank:   [['Always', 'Repairs 2% of its health every second'], ['When smashed', '25% chance of a 3× jackpot, 2× chest chance']],
+  golden: [['When hit', 'Drops 3× cash'], ['When smashed', 'Gold Fever: all cash ×2 for 6 seconds']],
+};
+const dayScale = () => Math.pow(1.07, S.day - 1);
+const pigHp = (k, m) => Math.max(1, Math.round(3 * k.hp * dayScale() * (m ? m.hpMult : 1)));
+const pigCash = (k, m) => Math.round(4 * k.coin * dayScale() * (m ? m.coinMult : 1));
+const unlockedKinds = () => KINDS.filter(k => k.unlock <= S.day);
+const nextKind = () => KINDS.find(k => k.unlock > S.day);
+const quota = d => 6 + 2 * d;
+
+/* ---------- State ---------- */
+const fresh = () => ({ v: 3, game: GAME, cash: 0, day: 1, best: 1, smashed: 0, hammer: 0, speed: 0, luck: 0, watch: 0, chests: 1, abil: {}, seen: {}, equipped: null, swings: 0, opened: 0 });
+let S, feverT = 0;
+function sanitize(d) {
+  const f = fresh();
+  if (!d || typeof d !== 'object' || d.game !== GAME) return f;
+  const out = Object.assign(f, d);
+  for (const k of ['cash', 'day', 'best', 'smashed', 'hammer', 'speed', 'luck', 'watch', 'chests', 'swings', 'opened'])
+    if (!Number.isFinite(out[k])) out[k] = fresh()[k];
+  out.day = Math.max(1, out.day);
+  const abil = {}, seen = {};
+  for (const id in (out.abil || {})) if (ABMAP[id] && Number.isFinite(out.abil[id])) abil[id] = clamp(out.abil[id], 1, MAXLV);
+  for (const id in (out.seen || {})) if (abil[id]) seen[id] = out.seen[id];
+  out.abil = abil; out.seen = seen;
+  if (!out.equipped || !abil[out.equipped]) out.equipped = null;
+  return out;
+}
+function load() {
+  try { const raw = localStorage.getItem(KEY); if (raw) return sanitize(JSON.parse(raw)); } catch (e) {}
+  return fresh();
+}
+let dirty = false;
+function save() { dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const markDirty = () => { dirty = true; };
+
+const hammerDmg = l => Math.round((1 + l) * Math.pow(1.1, l));
+const hammerCost = l => Math.round(25 * Math.pow(1.6, l));
+const SPEEDMAX = 20;
+const swingRate = l => 1.2 * Math.pow(1.09, l);
+const speedCost = l => Math.round(20 * Math.pow(1.55, l));
+const WATCHMAX = 10;
+const dayLength = l => 30 + 3 * l;
+const watchCost = l => Math.round(60 * Math.pow(1.85, l));
+const LUCKMAX = 10;
+const chestBase = l => 0.1 + l * 0.015;
+const luckCost = l => Math.round(40 * Math.pow(1.8, l));
+
+function mods() {
+  const m = { dmgMult: 1, coinMult: 1, hpMult: 1, critChance: 0, critMult: 2, speedMult: 1, chestBonus: 0, radiusMult: 1, dynEvery: 0, dynMult: 1,
+    boltEvery: 0, boltMult: 0, pull: 0, quakeChance: 0, ricochet: 0, chainMult: 0, ghostEvery: 0, stampedeEvery: 0, stampedeMult: 0 };
+  const id = S.equipped;
+  if (id && S.abil[id] && ABMAP[id]) Object.assign(m, ABMAP[id].fx(S.abil[id]));
+  if (feverT > 0) m.coinMult *= 2;
+  return m;
+}
+const hit1 = m => hammerDmg(S.hammer) * m.dmgMult;
+
+/* ---------- Audio ---------- */
+let ac = null, muted = false, userActed = false;
+try { muted = localStorage.getItem(KEY + '-mute') === '1'; } catch (e) {}
+function actx() {
+  if (muted || !userActed) return null;
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+  if (ac && ac.state === 'suspended') ac.resume().catch(() => {});
+  return ac;
+}
+function tone(f, dur, type = 'sine', vol = 0.12, f2 = null, delay = 0) {
+  const a = actx(); if (!a) return;
+  const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+let noiseBuf = null;
+function noise(dur, vol, freq) {
+  const a = actx(); if (!a) return;
+  if (!noiseBuf) { noiseBuf = a.createBuffer(1, a.sampleRate * 1.2, a.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const s = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain(), t = a.currentTime;
+  s.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + dur);
+}
+let lastCoin = 0, lastHit = 0, lastOink = 0;
+const sfx = {
+  hit(big) { const n = performance.now(); if (n - lastHit < 60) return; lastHit = n; noise(0.07, big ? 0.32 : 0.2, big ? 2400 : 1500); tone(big ? 95 : 140, 0.09, 'triangle', 0.22, 55); },
+  whiff() { noise(0.12, 0.07, 500); },
+  oink() { const n = performance.now(); if (n - lastOink < 400) return; lastOink = n; tone(rand(300, 380), 0.12, 'sawtooth', 0.05, 200); },
+  coin() { const n = performance.now(); if (n - lastCoin < 80) return; lastCoin = n; tone(rand(1500, 1800), 0.07, 'square', 0.022); },
+  smash() { noise(0.35, 0.4, 1600); tone(1200, 0.12, 'triangle', 0.05, 600); },
+  boom() { noise(0.6, 0.55, 700); tone(60, 0.5, 'sine', 0.3, 30); },
+  chest() { tone(523, 0.1, 'triangle', 0.1); tone(784, 0.14, 'triangle', 0.1, null, 0.09); tone(1046, 0.18, 'triangle', 0.08, null, 0.18); },
+  rattle() { noise(0.05, 0.12, 900); },
+  reveal(r) { const k = RORDER.indexOf(r); const base = [392, 440, 523, 587, 659][k]; for (let i = 0; i <= k + 1; i++) tone(base * Math.pow(1.26, i), 0.25, 'triangle', 0.09, null, i * 0.09); },
+  buy() { tone(660, 0.07, 'square', 0.05); tone(990, 0.1, 'square', 0.05, null, 0.06); },
+  bolt() { noise(0.25, 0.28, 4000); tone(200, 0.2, 'sawtooth', 0.06, 60); },
+  stampede() { noise(1.2, 0.35, 260); tone(55, 1, 'sawtooth', 0.06, 40); },
+  start() { [392, 523, 659].forEach((f, i) => tone(f, 0.16, 'square', 0.05, null, i * 0.09)); },
+  win() { [392, 494, 587, 784].forEach((f, i) => tone(f, 0.18, 'square', 0.05, null, i * 0.1)); },
+  lose() { [392, 349, 311].forEach((f, i) => tone(f, 0.22, 'triangle', 0.08, null, i * 0.14)); },
+};
+
+/* ---------- Drawing helpers ---------- */
+function rr(c, x, y, w, h, r) {
+  c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+const bodyPath = (c, s) => { c.beginPath(); c.ellipse(0, 0, 1.15 * s, .82 * s, 0, 0, TAU); };
+function makeCracks() {
+  const arr = [];
+  for (let i = 0; i < 7; i++) {
+    let x = rand(-.7, .6), y = rand(-.45, .45), a = rand(0, TAU);
+    const pts = [[x, y]], n = 4 + Math.floor(Math.random() * 3);
+    for (let j = 0; j < n; j++) { a += rand(-.55, .55); const L = rand(.1, .22); x += Math.cos(a) * L; y += Math.sin(a) * L; pts.push([x, y]); }
+    arr.push(pts);
+  }
+  return arr;
+}
+function pigDeco(c, b, s, time) {
+  const id = b.kind.id;
+  c.lineCap = 'round';
+  if (id === 'clay') {
+    c.fillStyle = 'rgba(255,245,225,.75)';
+    for (let i = -2; i <= 2; i++) for (const y of [-.45, .45]) { c.beginPath(); c.arc(i * .3 * s, y * s, .05 * s, 0, TAU); c.fill(); }
+    c.strokeStyle = 'rgba(120,40,15,.4)'; c.lineWidth = .06 * s; c.beginPath(); c.ellipse(0, 0, .95 * s, .62 * s, 0, 0, TAU); c.stroke();
+  } else if (id === 'straw') {
+    c.lineWidth = .045 * s;
+    for (let x = -1.3; x < 1.3; x += .18) { c.strokeStyle = 'rgba(140,100,30,.45)'; c.beginPath(); c.moveTo(x * s, -s); c.lineTo((x + .5) * s, s); c.stroke(); c.strokeStyle = 'rgba(255,240,180,.35)'; c.beginPath(); c.moveTo((x + .09) * s, -s); c.lineTo((x + .59) * s, s); c.stroke(); }
+  } else if (id === 'nest') {
+    c.strokeStyle = 'rgba(70,40,15,.7)'; c.lineWidth = .05 * s; c.beginPath(); c.moveTo(.15 * s, -s); c.lineTo(.15 * s, s); c.stroke();
+    c.fillStyle = '#b8433a'; c.fillRect(-.75 * s, -s, .16 * s, 2 * s); c.fillStyle = '#e8c870'; c.fillRect(-.55 * s, -s, .06 * s, 2 * s);
+    c.fillStyle = 'rgba(255,240,200,.65)'; for (let i = 0; i < 5; i++) { const a = i / 5 * TAU; c.beginPath(); c.arc(-.25 * s + Math.cos(a) * .14 * s, Math.sin(a) * .14 * s, .06 * s, 0, TAU); c.fill(); }
+  } else if (id === 'powder') {
+    c.fillStyle = '#efe6d0'; c.fillRect(-.5 * s, -s, .4 * s, 2 * s);
+    c.fillStyle = '#c2352a'; c.fillRect(-.42 * s, -s, .07 * s, 2 * s); c.fillRect(-.25 * s, -s, .07 * s, 2 * s);
+  } else if (id === 'rowdy') {
+    c.strokeStyle = 'rgba(90,10,5,.5)'; c.lineWidth = .05 * s;
+    c.beginPath(); c.moveTo(-.4 * s, -.5 * s); c.lineTo(-.15 * s, -.25 * s); c.moveTo(-.15 * s, -.5 * s); c.lineTo(-.4 * s, -.25 * s); c.stroke();
+    if (b.rage > 0) { c.fillStyle = `rgba(255,80,30,${.25 + .2 * Math.sin(time * 20)})`; c.fillRect(-1.2 * s, -s, 2.4 * s, 2 * s); }
+  } else if (id === 'iron') {
+    c.strokeStyle = 'rgba(40,45,52,.6)'; c.lineWidth = .04 * s;
+    [-.45, .2].forEach(x => { c.beginPath(); c.moveTo(x * s, -s); c.lineTo(x * s, s); c.stroke(); });
+    c.fillStyle = '#5d6670';
+    for (const x of [-.45, .2]) for (let y = -.6; y <= .61; y += .3) { c.beginPath(); c.arc((x + .08) * s, y * s, .04 * s, 0, TAU); c.fill(); }
+  } else if (id === 'miner') {
+    c.fillStyle = 'rgba(90,55,30,.35)';
+    [[-.6, .3, .18], [-.1, -.45, .14], [.3, .4, .12], [-.75, -.3, .1]].forEach(([x, y, r]) => { c.beginPath(); c.arc(x * s, y * s, r * s, 0, TAU); c.fill(); });
+  } else if (id === 'bank') {
+    c.fillStyle = '#d7b44a'; c.fillRect(-1.2 * s, -.08 * s, 2.4 * s, .16 * s);
+    c.fillStyle = '#e1e8ee'; c.beginPath(); c.arc(-.35 * s, -.38 * s, .22 * s, 0, TAU); c.fill();
+    c.strokeStyle = '#4e6070'; c.lineWidth = .03 * s;
+    for (let i = 0; i < 12; i++) { const a = i / 12 * TAU; c.beginPath(); c.moveTo(-.35 * s + Math.cos(a) * .15 * s, -.38 * s + Math.sin(a) * .15 * s); c.lineTo(-.35 * s + Math.cos(a) * .21 * s, -.38 * s + Math.sin(a) * .21 * s); c.stroke(); }
+  } else if (id === 'golden') {
+    const x = ((time * .6) % 2.6 - 1.3) * s;
+    c.fillStyle = 'rgba(255,255,240,.45)'; c.beginPath(); c.moveTo(x - .2 * s, -s); c.lineTo(x + .05 * s, -s); c.lineTo(x + .45 * s, s); c.lineTo(x + .2 * s, s); c.closePath(); c.fill();
+  }
+  c.fillStyle = 'rgba(255,255,255,.16)'; c.beginPath(); c.ellipse(.1 * s, -.42 * s, .6 * s, .18 * s, 0, 0, TAU); c.fill();
+}
+function drawPig(c, b, s, time) {
+  const P = b.kind.pal, id = b.kind.id, step = Math.sin(time * 14 * b.kind.speed + (b.seed || 0)) * .08;
+  c.fillStyle = P.b;
+  [[.55, -.68, step], [.55, .68, -step], [-.55, -.68, -step], [-.55, .68, step]].forEach(([x, y, o]) => { c.beginPath(); c.ellipse((x + o) * s, y * s, .2 * s, .14 * s, 0, 0, TAU); c.fill(); });
+  c.strokeStyle = P.b; c.lineWidth = .08 * s; c.lineCap = 'round';
+  if (id === 'powder') {
+    c.strokeStyle = '#4a3a2a'; c.beginPath(); c.moveTo(-1.1 * s, 0); c.quadraticCurveTo(-1.35 * s, -.1 * s, -1.45 * s, -.28 * s); c.stroke();
+    const f = .5 + .5 * Math.sin(time * 30);
+    c.fillStyle = `rgba(255,${180 + f * 60},60,.95)`; c.beginPath(); c.arc(-1.45 * s, -.28 * s, (.07 + f * .05) * s, 0, TAU); c.fill();
+  } else { c.beginPath(); c.moveTo(-1.1 * s, 0); c.bezierCurveTo(-1.42 * s, -.06 * s, -1.38 * s, .26 * s, -1.24 * s, .18 * s); c.stroke(); }
+  c.fillStyle = P.ear;
+  [-1, 1].forEach(g => { c.beginPath(); c.moveTo(.45 * s, g * .52 * s); c.lineTo(.95 * s, g * .8 * s); c.lineTo(.82 * s, g * .3 * s); c.closePath(); c.fill(); });
+  const grad = c.createRadialGradient(.2 * s, -.25 * s, .1 * s, 0, 0, 1.2 * s); grad.addColorStop(0, P.a); grad.addColorStop(1, P.b);
+  bodyPath(c, s); c.fillStyle = grad; c.fill();
+  c.save(); bodyPath(c, s); c.clip();
+  pigDeco(c, b, s, time);
+  const f = 1 - b.hp / b.maxHp, n = b.cracks.length;
+  c.lineJoin = 'round';
+  b.cracks.forEach((pts, i) => {
+    const start = i / n * 0.85, local = clamp((f - start) / 0.25, 0, 1);
+    if (local <= 0) return;
+    const segs = local * (pts.length - 1);
+    c.beginPath(); c.moveTo(pts[0][0] * s, pts[0][1] * s);
+    for (let j = 1; j <= Math.ceil(segs); j++) { const k = Math.min(1, segs - (j - 1)), p0 = pts[j - 1], p1 = pts[j]; c.lineTo((p0[0] + (p1[0] - p0[0]) * k) * s, (p0[1] + (p1[1] - p0[1]) * k) * s); }
+    c.strokeStyle = 'rgba(20,10,4,.8)'; c.lineWidth = Math.max(1.5, .06 * s); c.stroke();
+  });
+  c.restore();
+  bodyPath(c, s); c.strokeStyle = 'rgba(40,20,6,.45)'; c.lineWidth = Math.max(1.2, .045 * s); c.stroke();
+  // coin slot on the back
+  c.fillStyle = id === 'golden' || id === 'bank' ? '#5a3a08' : 'rgba(20,10,4,.75)';
+  c.beginPath(); rr(c, -.62 * s, -.07 * s, .55 * s, .14 * s, .07 * s); c.fill();
+  // snout and face
+  c.fillStyle = P.snout; c.beginPath(); c.ellipse(1.08 * s, 0, .22 * s, .3 * s, 0, 0, TAU); c.fill();
+  c.strokeStyle = 'rgba(40,20,6,.35)'; c.lineWidth = .03 * s; c.stroke();
+  c.fillStyle = 'rgba(40,15,5,.7)'; [-.1, .1].forEach(y => { c.beginPath(); c.ellipse(1.13 * s, y * s, .04 * s, .06 * s, 0, 0, TAU); c.fill(); });
+  c.fillStyle = '#1c0f06'; [-.3, .3].forEach(y => { c.beginPath(); c.arc(.76 * s, y * s, .075 * s, 0, TAU); c.fill(); });
+  c.fillStyle = '#fff'; [-.3, .3].forEach(y => { c.beginPath(); c.arc(.79 * s, (y - .02) * s, .025 * s, 0, TAU); c.fill(); });
+  if (id === 'rowdy') { c.strokeStyle = '#3a0805'; c.lineWidth = .06 * s; [-1, 1].forEach(g => { c.beginPath(); c.moveTo(.66 * s, g * .44 * s); c.lineTo(.86 * s, g * .3 * s); c.stroke(); }); }
+  if (id === 'miner') {
+    c.fillStyle = '#e8b830'; c.beginPath(); c.ellipse(.52 * s, 0, .3 * s, .38 * s, 0, 0, TAU); c.fill();
+    c.strokeStyle = '#a07a10'; c.lineWidth = .04 * s; c.stroke();
+    c.fillStyle = '#fff6c0'; c.beginPath(); c.arc(.78 * s, 0, .09 * s, 0, TAU); c.fill();
+  }
+}
+
+const CHEST = { band: '#4e2e14', trim: '#e6b54a', dark: '#5a3418' };
+function drawChest(c, cx, cy, w, open = 0, glow = null, time = 0) {
+  const T = CHEST, h = w * .44, lh = w * .28, x = cx - w / 2, by = cy - h * .15;
+  if (open > 0 && glow) {
+    c.save(); c.translate(cx, by); c.globalAlpha = open;
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, w * 1.3); g.addColorStop(0, glow); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, w * 1.3, 0, TAU); c.fill();
+    c.rotate(time * .4); c.fillStyle = glow; c.globalAlpha = open * .28;
+    for (let i = 0; i < 12; i++) { c.rotate(TAU / 12); c.beginPath(); c.moveTo(0, 0); c.lineTo(-w * .09, -w * 1.4); c.lineTo(w * .09, -w * 1.4); c.closePath(); c.fill(); }
+    c.restore();
+  }
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(cx, by + h + w * .02, w * .55, w * .06, 0, 0, TAU); c.fill();
+  const bg = c.createLinearGradient(0, by, 0, by + h); bg.addColorStop(0, '#8a5630'); bg.addColorStop(1, '#5e3819');
+  c.fillStyle = bg; c.beginPath(); rr(c, x, by, w, h, w * .04); c.fill();
+  c.strokeStyle = T.dark; c.lineWidth = w * .014;
+  [.35, .68].forEach(k => { c.beginPath(); c.moveTo(x, by + h * k); c.lineTo(x + w, by + h * k); c.stroke(); });
+  c.fillStyle = T.trim; c.fillRect(x + w * .13, by, w * .08, h); c.fillRect(x + w * .79, by, w * .08, h);
+  c.fillRect(x, by + h * .9, w, h * .1); c.fillRect(x, by, w, h * .07);
+  c.fillStyle = '#b8862a'; [[.17, .25], [.17, .75], [.83, .25], [.83, .75]].forEach(([u, v]) => { c.beginPath(); c.arc(x + w * u, by + h * v, w * .012, 0, TAU); c.fill(); });
+  if (open > 0 && glow) { c.fillStyle = glow; c.globalAlpha = open * .8; c.fillRect(x + w * .04, by - 2, w * .92, h * .07 + 2); c.globalAlpha = 1; }
+  c.save(); const lift = open * lh * .95; c.translate(cx, by - lift); c.scale(1, 1 - open * .5);
+  const lg = c.createLinearGradient(0, -lh, 0, 0); lg.addColorStop(0, '#9a6236'); lg.addColorStop(1, '#6e421f');
+  c.fillStyle = lg; c.beginPath();
+  c.moveTo(-w / 2, 0); c.lineTo(-w / 2, -lh * .55); c.quadraticCurveTo(-w / 2, -lh, -w * .3, -lh); c.lineTo(w * .3, -lh); c.quadraticCurveTo(w / 2, -lh, w / 2, -lh * .55); c.lineTo(w / 2, 0); c.closePath(); c.fill();
+  c.save(); c.clip(); c.fillStyle = T.trim; c.fillRect(-w * .37, -lh, w * .08, lh); c.fillRect(w * .29, -lh, w * .08, lh);
+  c.fillStyle = 'rgba(255,230,180,.15)'; c.fillRect(-w / 2, -lh * .88, w, lh * .12); c.restore();
+  c.fillStyle = T.trim; c.fillRect(-w / 2, -h * .08, w, h * .08);
+  c.restore();
+  const ly = by - h * .06 - lift;
+  c.fillStyle = T.trim; c.beginPath(); rr(c, cx - w * .075, ly, w * .15, h * .32, w * .025); c.fill();
+  c.fillStyle = '#3a2008'; c.beginPath(); c.arc(cx, ly + h * .13, w * .022, 0, TAU); c.fill(); c.fillRect(cx - w * .01, ly + h * .13, w * .02, h * .1);
+}
+
+function drawHammer(c, x, y, lift, k, glow) {
+  const up = lift * 30 * k, sc2 = 1 + lift * .3;
+  c.save(); c.globalAlpha = .28 - lift * .12; c.fillStyle = '#2a1405';
+  c.translate(x + lift * 16 * k, y + lift * 10 * k); c.rotate(-.5); c.scale(1 - lift * .2, 1 - lift * .2);
+  c.beginPath(); rr(c, -30 * k, -14 * k, 60 * k, 28 * k, 5 * k); c.fill();
+  c.beginPath(); rr(c, -5 * k, 10 * k, 10 * k, 70 * k, 4 * k); c.fill();
+  c.restore();
+  c.save(); c.translate(x, y - up); c.rotate(-.5); c.scale(sc2, sc2);
+  const hg = c.createLinearGradient(-5 * k, 0, 5 * k, 0); hg.addColorStop(0, '#c48a52'); hg.addColorStop(1, '#7a4a22');
+  c.fillStyle = hg; c.beginPath(); rr(c, -5 * k, 8 * k, 10 * k, 74 * k, 4 * k); c.fill();
+  c.fillStyle = '#2c1a10'; for (let i = 0; i < 4; i++) c.fillRect(-5.5 * k, (60 + i * 6) * k, 11 * k, 3 * k);
+  if (glow) { c.shadowColor = glow; c.shadowBlur = 16 * k; }
+  const mg = c.createLinearGradient(0, -14 * k, 0, 14 * k); mg.addColorStop(0, '#d4dbe1'); mg.addColorStop(1, '#4b535b');
+  c.fillStyle = mg; c.beginPath(); rr(c, -30 * k, -14 * k, 60 * k, 28 * k, 5 * k); c.fill();
+  c.shadowBlur = 0;
+  c.fillStyle = glow || '#8c959e'; c.fillRect(-30 * k, -14 * k, 7 * k, 28 * k); c.fillRect(23 * k, -14 * k, 7 * k, 28 * k);
+  c.fillStyle = 'rgba(255,255,255,.4)'; c.fillRect(-20 * k, -10 * k, 40 * k, 3 * k);
+  c.restore();
+}
+
+/* ---------- Scene ---------- */
+const stage = $('#stage'), cv = $('#cv'), ctx = cv.getContext('2d');
+const gcv = document.createElement('canvas'), gctx = gcv.getContext('2d');
+const tw = document.createElement('canvas'); tw.width = tw.height = 96;
+(() => { const c = tw.getContext('2d'); c.translate(48, 48); c.lineCap = 'round';
+  for (let i = 0; i < 60; i++) { const a = Math.random() * TAU, r1 = Math.random() * 38, a2 = a + rand(-1.6, 1.6), r2 = Math.random() * 40;
+    c.strokeStyle = Math.random() < .5 ? 'rgba(130,90,45,.9)' : 'rgba(175,135,80,.85)'; c.lineWidth = rand(1, 2.4);
+    c.beginPath(); c.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); c.quadraticCurveTo(rand(-20, 20), rand(-20, 20), Math.cos(a2) * r2, Math.sin(a2) * r2); c.stroke(); } })();
+let W = 0, H = 0, DPR = 1, K = 1;
+function srand(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+function buildGround() {
+  gcv.width = cv.width; gcv.height = cv.height;
+  const c = gctx, R = srand(1337); c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = c.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#e2bd86'); g.addColorStop(1, '#cf9f63');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  c.strokeStyle = 'rgba(140,90,45,.18)'; c.lineWidth = 14 * K;
+  [-1, 1].forEach(o => { c.beginPath(); c.moveTo(-20, H * .25 + o * 26 * K); c.bezierCurveTo(W * .35, H * .05 + o * 26 * K, W * .6, H * .95 + o * 26 * K, W + 20, H * .75 + o * 26 * K); c.stroke(); });
+  for (let i = 0; i < W * H / 220; i++) { c.fillStyle = R() < .5 ? 'rgba(120,75,35,.22)' : 'rgba(255,240,210,.3)'; c.fillRect(R() * W, R() * H, 1 + R() * 1.6, 1 + R() * 1.6); }
+  c.strokeStyle = 'rgba(110,65,30,.3)'; c.lineWidth = 1.4;
+  for (let i = 0; i < 9; i++) { let x = R() * W, y = R() * H, a = R() * TAU; c.beginPath(); c.moveTo(x, y); for (let j = 0; j < 6; j++) { a += (R() - .5) * 1.4; x += Math.cos(a) * 18 * K; y += Math.sin(a) * 18 * K; c.lineTo(x, y); } c.stroke(); }
+  for (let i = 0; i < 46; i++) { const x = R() * W, y = R() * H, r = (2 + R() * 5) * K;
+    c.fillStyle = 'rgba(70,40,15,.25)'; c.beginPath(); c.ellipse(x + 2, y + 2, r, r * .75, 0, 0, TAU); c.fill();
+    c.fillStyle = ['#a99580', '#8d7a66', '#c2ae92'][Math.floor(R() * 3)]; c.beginPath(); c.ellipse(x, y, r, r * .75, R(), 0, TAU); c.fill(); }
+  c.lineCap = 'round';
+  for (let i = 0; i < 18; i++) { const x = R() * W, y = R() * H; c.strokeStyle = R() < .5 ? '#8c8a3c' : '#a3964a'; c.lineWidth = 1.6;
+    for (let j = 0; j < 7; j++) { const a = -Math.PI / 2 + (R() - .5) * 2.4, l = (5 + R() * 8) * K; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l * .7); c.stroke(); } }
+  [[.07, .18], [.94, .3], [.1, .86], [.9, .9]].forEach(([u, v], i) => {
+    const x = u * W, y = v * H, r = (16 + i * 2) * K;
+    const cactus = (cx, cy, rr2) => {
+      c.fillStyle = 'rgba(60,35,10,.3)'; c.beginPath(); c.arc(cx + 5 * K, cy + 6 * K, rr2, 0, TAU); c.fill();
+      const cg = c.createRadialGradient(cx - rr2 * .3, cy - rr2 * .3, 1, cx, cy, rr2); cg.addColorStop(0, '#86b25a'); cg.addColorStop(1, '#3f6b2a');
+      c.fillStyle = cg; c.beginPath(); c.arc(cx, cy, rr2, 0, TAU); c.fill();
+      c.strokeStyle = 'rgba(30,60,20,.6)'; c.lineWidth = 1.2;
+      for (let j = 0; j < 8; j++) { const a = j / 8 * TAU; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2); c.stroke(); }
+      c.fillStyle = '#f3e7c1'; for (let j = 0; j < 8; j++) { const a = j / 8 * TAU + .2; c.fillRect(cx + Math.cos(a) * rr2 * .7, cy + Math.sin(a) * rr2 * .7, 1.5, 1.5); }
+    };
+    cactus(x + r * 1.3, y - r * .2, r * .55); cactus(x - r * 1.2, y + r * .3, r * .5); cactus(x, y, r);
+    if (i === 1) { c.fillStyle = '#e66f8a'; c.beginPath(); c.arc(x, y, 3.5 * K, 0, TAU); c.fill(); }
+  });
+  const v = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75);
+  v.addColorStop(0, 'rgba(60,30,10,0)'); v.addColorStop(1, 'rgba(60,30,10,.35)');
+  c.fillStyle = v; c.fillRect(0, 0, W, H);
+}
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = stage.clientWidth; H = stage.clientHeight; K = clamp(Math.min(W, H) / 560, .62, 1.25);
+  if (!W || !H) return;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  buildGround();
+  for (const b of pigs) { b.s = b.kind.w * K * (b.mini ? .75 : 1); b.x = clamp(b.x, 10, W - 10); b.y = clamp(b.y, 60, H - 10); }
+  if (!hammer.moved) { hammer.x = hammer.tx = W / 2; hammer.y = hammer.ty = H / 2; }
+}
+
+let pigs = [], parts = [], bolts = [], weeds = [];
+let hammer = { x: 0, y: 0, tx: 0, ty: 0, phase: 0, moved: false };
+let swingCount = 0, boltT = 0, ghostT = 0, ghostReady = false, spawnT = 0, weedT = 4, shakeCam = 0, time = 0;
+let herd = null, stampT = 0;
+const HERD = [[0, 0], [-50, -35], [-50, 35], [-100, 0], [-100, -62], [-100, 62], [-150, -28], [-150, 28]];
+const HIDE = ['#6b3f1f', '#3a2414', '#a0703f', '#efe2c8'];
+const day = { running: false, t: 0, count: 0, quota: 0, earned: 0, chests: 0 };
+
+const maxPigs = () => Math.min(9, 3 + Math.floor(S.day / 2));
+const hitR = m => 44 * K * m.radiusMult;
+function pickKind() {
+  const pool = unlockedKinds().slice(-4), w = pool.map((k, i) => i + 1), tot = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * tot;
+  for (let i = 0; i < pool.length; i++) { r -= w[i]; if (r <= 0) return pool[i]; }
+  return pool[pool.length - 1];
+}
+function spawnPig(forceKind, fx, fy, mini) {
+  const kind = forceKind || pickKind(), s = kind.w * K * (mini ? .75 : 1), m = mods();
+  const hp = Math.max(1, Math.round(pigHp(kind, m) * (mini ? .6 : 1)));
+  let x = W / 2, y = H / 2;
+  if (fx != null) { x = clamp(fx, s, W - s); y = clamp(fy, 70 + s, H - s); }
+  else for (let tries = 0; tries < 20; tries++) {
+    x = rand(s * 1.5, W - s * 1.5); y = rand(70 + s, H - s * 1.5);
+    if (pigs.every(b => Math.hypot(b.x - x, b.y - y) > (b.s + s) * 1.6) && Math.hypot(hammer.x - x, hammer.y - y) > 60 * K) break;
+  }
+  const heading = rand(0, TAU);
+  pigs.push({ kind, s, x, y, heading, rot: heading, hp, maxHp: hp, shake: 0, spawn: 0, mini: !!mini, seed: rand(0, 10), cracks: makeCracks() });
+}
+function addPart(p) { if (parts.length < 450) parts.push(p); }
+function floatText(x, y, text, color, size = 20) { addPart({ t: 'text', x, y, vx: rand(-15, 15), vy: -80, life: 0, max: .9, text, color, size }); }
+function shard(x, y, cols, k = 1) { return { t: 'shard', x, y, vx: rand(-260, 260) * k, vy: rand(-260, 260) * k, life: 0, max: rand(.5, .9), color: cols[Math.floor(Math.random() * cols.length)], size: rand(4, 11) * K * k, rot: rand(0, TAU), vr: rand(-12, 12), p: [rand(.6, 1.2), rand(.6, 1.2), rand(.6, 1.2)] }; }
+function coinP(x, y, k = 1) { return { t: 'coin', x, y, vx: rand(-160, 160) * k, vy: rand(-160, 160) * k, life: 0, max: rand(.6, 1), rot: rand(0, TAU), vr: rand(8, 16), size: rand(4, 6) * K, z: 0, vz: rand(120, 260) * k }; }
+function dust(x, y, r, n = 8) { for (let i = 0; i < n; i++) { const a = rand(0, TAU), sp = rand(30, 90); addPart({ t: 'dust', x: x + Math.cos(a) * r * .5, y: y + Math.sin(a) * r * .5, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: rand(.4, .7), size: rand(6, 12) * K }); } }
+const live = b => b.hp > 0 && b.spawn > .5;
+function earn(n) { S.cash += n; if (day.running) day.earned += n; }
+
+function swing() {
+  const m = mods(); swingCount++; S.swings++;
+  const R = hitR(m), dyn = m.dynEvery && swingCount % m.dynEvery === 0, area = dyn ? R * 2.2 : R;
+  const hx = hammer.x, hy = hammer.y;
+  const alive = pigs.filter(live);
+  const ghost = ghostReady && alive.length > 0;
+  const targets = ghost ? alive : alive.filter(b => Math.hypot(b.x - hx, b.y - hy) < area + b.s * b.kind.rad * .8);
+  dust(hx, hy, R, dyn ? 18 : 6);
+  addPart({ t: 'ring', x: hx, y: hy, life: 0, max: .3, r: area, color: dyn ? '#ff8a3c' : 'rgba(90,50,20,.6)' });
+  if (dyn) { sfx.boom(); shakeCam = .5; for (let i = 0; i < 16; i++) addPart({ t: 'spark', x: hx, y: hy, vx: rand(-420, 420), vy: rand(-420, 420), life: 0, max: rand(.3, .6), color: i % 2 ? '#ffcf4a' : '#ff6a2a' }); floatText(hx, hy - 30 * K, 'KABOOM!', '#ff8a3c', 26); }
+  if (ghost) { ghostReady = false; ghostT = 0; floatText(hx, hy - 40 * K, 'GHOST TOWN!', '#e8e0ff', 24); for (const b of targets) addPart({ t: 'ring', x: b.x, y: b.y, life: 0, max: .35, r: b.s * 1.4, color: 'rgba(230,220,255,.85)' }); }
+  if (!targets.length && !dyn) sfx.whiff();
+  for (const b of targets) {
+    let dmg = hit1(m), tag = null;
+    if (Math.random() < m.critChance) { dmg *= m.critMult; tag = 'crit'; }
+    if (dyn) { dmg *= m.dynMult; tag = 'dyn'; }
+    damagePig(b, dmg, tag);
+  }
+  if (m.ricochet) {
+    const rest = pigs.filter(b => live(b) && !targets.includes(b));
+    if (rest.length) {
+      const d = b => Math.hypot(b.x - hx, b.y - hy), n = rest.reduce((a, b) => d(b) < d(a) ? b : a);
+      addPart({ t: 'line', x: hx, y: hy, x2: n.x, y2: n.y, vx: 0, vy: 0, life: 0, max: .2 });
+      damagePig(n, hit1(m) * m.ricochet, 'ric');
+    }
+  }
+  if (m.quakeChance && Math.random() < m.quakeChance) {
+    shakeCam = Math.max(shakeCam, .3); floatText(hx, hy - 50 * K, 'QUAKE!', '#e8d3a8', 22);
+    for (const b of pigs) if (live(b)) damagePig(b, hit1(m), 'quake', true);
+  }
+  pigs = pigs.filter(b => b.hp > 0);
+  markDirty();
+}
+function damagePig(b, dmg, tag, quiet) {
+  if (b.hp <= 0) return;
+  const m = mods(), id = b.kind.id;
+  if (id === 'iron' && b.hp > b.maxHp / 2) dmg *= .6;
+  b.hp -= dmg; b.shake = Math.min(1.4, b.shake + (quiet ? .3 : tag ? 1.2 : .8));
+  if (id === 'straw' && !quiet) { b.dash = 1; b.heading = Math.atan2(b.y - hammer.y, b.x - hammer.x) + rand(-.4, .4); }
+  if (id === 'miner' && !quiet) b.boost = Math.min(2.6, (b.boost || 1) + .12);
+  if (id === 'rowdy') { if (!(b.rage > 0)) floatText(b.x, b.y - b.s * 1.6, 'RAMPAGE!', '#ff6a4a', 18); b.rage = 3; b.aimT = 0; }
+  const coins = Math.max(1, Math.round(.35 * b.kind.coin * dayScale() * m.coinMult * (quiet ? .3 : 1) * (id === 'golden' ? 3 : 1)));
+  earn(coins);
+  const col = tag === 'crit' ? RAR.rare.color : tag === 'dyn' ? '#ff8a3c' : tag === 'bolt' ? '#fff6b0' : tag === 'quake' ? '#e8d3a8' : tag === 'ram' ? '#ff6a4a' : '#fff5e0';
+  if (!quiet || Math.random() < .3) floatText(b.x + rand(-10, 10), b.y - b.s, (tag === 'crit' ? 'CRIT ' : '') + '-' + fmt(Math.ceil(dmg)), col, tag && tag !== 'quake' ? 24 : 18);
+  if (!quiet) {
+    for (let i = 0; i < 3; i++) addPart(shard(b.x, b.y, b.kind.shard, .7));
+    addPart(coinP(b.x, b.y, .8)); sfx.hit(!!tag); sfx.coin(); if (Math.random() < .3) sfx.oink();
+  }
+  if (b.hp <= 0) smash(b);
+}
+function smash(b) {
+  const m = mods();
+  b.hp = 0;
+  for (let i = 0; i < 26; i++) addPart(shard(b.x + rand(-1, 1) * b.s, b.y + rand(-1, 1) * b.s, b.kind.shard, 1.2));
+  for (let i = 0; i < 10; i++) addPart(coinP(b.x, b.y, 1.2));
+  dust(b.x, b.y, b.s * 1.5, 10);
+  let bonus = Math.round(pigCash(b.kind, m) * (b.mini ? .5 : 1)), label = '+';
+  if (b.kind.id === 'miner') { bonus = Math.round(bonus * 1.5); for (let i = 0; i < 10; i++) addPart(coinP(b.x, b.y, 1.5)); }
+  if (b.kind.id === 'bank' && Math.random() < .25) { bonus *= 3; label = 'JACKPOT +'; }
+  earn(bonus); S.smashed++;
+  if (day.running) day.count++;
+  floatText(b.x, b.y - b.s * .3, label + cash(bonus), '#ffd257', label === '+' ? 22 : 28);
+  sfx.smash();
+  const chance = Math.min(1, (chestBase(S.luck) + m.chestBonus) * b.kind.chest);
+  if (Math.random() < chance) {
+    S.chests++; if (day.running) day.chests++;
+    addPart({ t: 'chest', x: b.x, y: b.y, life: 0, max: 1.5, z: 0, vz: 260 });
+    toast(b.kind.chest > 1 ? `The ${b.kind.name} had a chest!` : 'You found a chest!');
+    setTimeout(sfx.chest, 100);
+    renderChest();
+  }
+  deathTraits(b, m);
+  updateHUD();
+}
+function explode(x, y, r, dmg, color) {
+  addPart({ t: 'ring', x, y, life: 0, max: .45, r, color });
+  for (let i = 0; i < 14; i++) addPart({ t: 'spark', x, y, vx: rand(-380, 380), vy: rand(-380, 380), life: 0, max: rand(.3, .6), color: i % 2 ? '#ffcf4a' : color });
+  dust(x, y, r * .6, 10); sfx.boom(); shakeCam = Math.max(shakeCam, .35);
+  for (const o of pigs) if (live(o) && Math.hypot(o.x - x, o.y - y) < r + o.s) damagePig(o, dmg, 'dyn');
+}
+function deathTraits(b, m) {
+  const id = b.kind.id;
+  if (id === 'clay') {
+    for (let i = 0; i < 8; i++) addPart(shard(b.x, b.y, b.kind.shard, 1.6));
+    for (const o of pigs) if (o !== b && live(o) && Math.hypot(o.x - b.x, o.y - b.y) < 100 * K) damagePig(o, hit1(m), 'shard');
+  }
+  if (id === 'nest' && day.running) for (let i = 0; i < 2; i++) spawnPig(KINDS[0], b.x + (i ? 1 : -1) * b.s * .8, b.y, true);
+  if (id === 'powder') explode(b.x, b.y, 120 * K, hit1(m) * 3, '#ff8a3c');
+  if (id === 'golden') { feverT = 6; toast('Gold Fever! All cash ×2 for 6 seconds', '#ffd257'); }
+  if (m.chainMult) explode(b.x, b.y, 100 * K, hit1(m) * m.chainMult, RAR.legendary.color);
+}
+
+/* ---------- Days ---------- */
+function startDay() {
+  if (day.running) return;
+  userActed = true;
+  day.running = true; day.t = dayLength(S.watch); day.count = 0; day.quota = quota(S.day); day.earned = 0; day.chests = 0;
+  pigs = []; spawnT = 0; boltT = 0; ghostT = 0; ghostReady = false; stampT = 0; herd = null; feverT = 0; swingCount = 0;
+  $('#dayOver').hidden = true; sfx.start(); updateHUD();
+}
+function endDay() {
+  day.running = false; hammer.phase = 0; herd = null; feverT = 0;
+  for (const b of pigs) { dust(b.x, b.y, b.s * 1.4, 6); }
+  pigs = [];
+  const won = day.count >= day.quota, n = S.day;
+  let unlockLine = '';
+  if (won) {
+    S.day++; S.best = Math.max(S.best, S.day);
+    const nk = KINDS.find(k => k.unlock === S.day);
+    if (nk) unlockLine = `<div class="unlock">New piggy tomorrow: ${nk.name}!</div>`;
+    sfx.win();
+  } else sfx.lose();
+  save();
+  showDayCard(won ? `Day ${n} cleared!` : `Day ${n} not cleared`, won,
+    `<p>Piggies smashed: <b>${day.count} / ${day.quota}</b></p><p>Cash earned: <b>${cash(day.earned)}</b></p><p>Chests found: <b>${day.chests}</b></p>` +
+    (won ? unlockLine : `<p>Buy upgrades in the Store, then try day ${n} again.</p>`));
+  renderAll();
+}
+function showDayCard(title, won, body) {
+  const t = $('#doTitle'); t.textContent = title; t.classList.toggle('fail', won === false);
+  $('#doBody').innerHTML = body;
+  $('#startDay').textContent = `Start day ${S.day}`;
+  $('#dayOver').hidden = false;
+}
+function readyCard() {
+  showDayCard(`Day ${S.day}`, null, `<p>Smash <b>${quota(S.day)} piggies</b> in <b>${dayLength(S.watch)} seconds</b> to reach the next day.</p><p>Move your hammer over the piggies. It swings on its own.</p>`);
+}
+$('#startDay').addEventListener('click', startDay);
+
+/* ---------- Loop ---------- */
+let last = performance.now();
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (W && H) { try { if (!M) { time += dt; update(dt); } render(); } catch (e) { console.error(e); } }
+}
+function update(dt) {
+  const m = mods();
+  hammer.x += (hammer.tx - hammer.x) * Math.min(1, dt * 16);
+  hammer.y += (hammer.ty - hammer.y) * Math.min(1, dt * 16);
+  if (day.running) {
+    day.t -= dt;
+    hammer.phase += dt * swingRate(S.speed) * m.speedMult;
+    let guard = 0;
+    while (hammer.phase >= 1 && guard++ < 8) { hammer.phase -= 1; swing(); }
+    if (pigs.length < maxPigs()) { spawnT -= dt; if (spawnT <= 0) { spawnPig(); spawnT = .6; } }
+    if (m.ghostEvery) { ghostT += dt; if (ghostT >= m.ghostEvery) ghostReady = true; } else { ghostT = 0; ghostReady = false; }
+    if (m.boltEvery) {
+      boltT += dt;
+      const alive = pigs.filter(b => b.hp > 0 && b.spawn >= 1);
+      if (boltT >= m.boltEvery && alive.length) {
+        boltT = 0; const b = alive[Math.floor(Math.random() * alive.length)];
+        makeBolt(b.x, b.y); damagePig(b, hit1(m) * m.boltMult, 'bolt');
+      }
+    } else boltT = 0;
+    if (m.stampedeEvery) {
+      stampT += dt;
+      if (stampT >= m.stampedeEvery && !herd) {
+        stampT = 0; const dir = Math.random() < .5 ? 1 : -1;
+        herd = { x: dir > 0 ? -60 : W + 60, y: rand(130, Math.max(140, H - 50)), dir, hit: new Set() };
+        sfx.stampede();
+      }
+    } else stampT = 0;
+    if (day.t <= 0) { endDay(); return; }
+  }
+  const lvlSpeed = Math.min(1.8, 1 + (S.day - 1) * .03);
+  for (const b of pigs) {
+    b.spawn = Math.min(1, b.spawn + dt / .35);
+    b.shake = Math.max(0, b.shake - dt * 5);
+    if (b.dash > 0) b.dash -= dt;
+    if (b.ramCd > 0) b.ramCd -= dt;
+    if (b.kind.id === 'bank' && b.hp > 0) b.hp = Math.min(b.maxHp, b.hp + b.maxHp * .02 * dt);
+    if (b.rage > 0) {
+      b.rage -= dt; b.aimT -= dt;
+      if (b.aimT <= 0) {
+        b.aimT = .4;
+        const others = pigs.filter(o => o !== b && live(o));
+        if (others.length) { const d = o => Math.hypot(o.x - b.x, o.y - b.y), t = others.reduce((a, o) => d(o) < d(a) ? o : a); b.heading = Math.atan2(t.y - b.y, t.x - b.x); }
+      }
+      if (Math.random() < .3) addPart({ t: 'dust', x: b.x, y: b.y, vx: 0, vy: 0, life: 0, max: .4, size: 6 * K });
+    } else b.heading += rand(-1, 1) * dt * 1.6;
+    const sp = 46 * K * b.kind.speed * lvlSpeed * (b.boost || 1) * (b.rage > 0 ? 3.5 : b.dash > 0 ? 3.2 : b.shake > .2 ? .4 : 1);
+    b.x += Math.cos(b.heading) * sp * dt; b.y += Math.sin(b.heading) * sp * dt;
+    if (m.pull) { const dx = hammer.x - b.x, dy = hammer.y - b.y, d = Math.hypot(dx, dy); if (d > 8 && d < 300 * K) { const p = Math.min(d, 55 * K * m.pull * dt * (1 - d / (300 * K) + .3)); b.x += dx / d * p; b.y += dy / d * p; } }
+    let diff = b.heading - b.rot; diff = Math.atan2(Math.sin(diff), Math.cos(diff)); b.rot += diff * Math.min(1, dt * 7);
+    const r = b.s * b.kind.rad, top = 64;
+    if (b.x < r) { b.x = r; b.heading = Math.PI - b.heading; }
+    if (b.x > W - r) { b.x = W - r; b.heading = Math.PI - b.heading; }
+    if (b.y < top + r) { b.y = top + r; b.heading = -b.heading; }
+    if (b.y > H - r) { b.y = H - r; b.heading = -b.heading; }
+  }
+  for (let i = 0; i < pigs.length; i++) for (let j = i + 1; j < pigs.length; j++) {
+    const a = pigs[i], b = pigs[j], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) || 1, min = (a.s * a.kind.rad + b.s * b.kind.rad) * .9;
+    if (d < min) {
+      const push = (min - d) / 2; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push;
+      if (day.running) {
+        if (a.rage > 0 && !(b.ramCd > 0) && live(b)) { b.ramCd = .5; b.heading = Math.atan2(dy, dx); damagePig(b, hit1(m) * 2, 'ram'); }
+        if (b.rage > 0 && !(a.ramCd > 0) && live(a)) { a.ramCd = .5; a.heading = Math.atan2(-dy, -dx); damagePig(a, hit1(m) * 2, 'ram'); }
+      }
+    }
+  }
+  if (herd) {
+    herd.x += herd.dir * 620 * K * dt; shakeCam = Math.max(shakeCam, .12);
+    if (Math.random() < .7) dust(herd.x - herd.dir * 120 * K, herd.y + rand(-60, 60) * K, 30 * K, 2);
+    for (const b of pigs) {
+      if (!live(b) || herd.hit.has(b)) continue;
+      if (Math.abs(b.y - herd.y) < 75 * K + b.s && Math.abs(b.x - (herd.x - herd.dir * 75 * K)) < 90 * K) { herd.hit.add(b); damagePig(b, hit1(m) * m.stampedeMult, 'dyn'); }
+    }
+    if (herd.x < -260 || herd.x > W + 260) herd = null;
+  }
+  pigs = pigs.filter(b => b.hp > 0);
+  weedT -= dt;
+  if (weedT <= 0) { weedT = rand(7, 15); const dir = Math.random() < .5 ? 1 : -1; weeds.push({ x: dir > 0 ? -60 : W + 60, y: rand(H * .25, H * .9), vx: dir * rand(110, 180) * K, rot: 0, size: rand(.5, .8) * K, hop: rand(0, TAU) }); }
+  for (const w of weeds) { w.x += w.vx * dt; w.rot += w.vx * dt / (40 * w.size); w.hop += dt * 6; }
+  weeds = weeds.filter(w => w.x > -100 && w.x < W + 100);
+  for (const p of parts) {
+    p.life += dt;
+    if (p.t === 'text') { p.y += p.vy * dt; p.vy *= .95; p.x += p.vx * dt; }
+    else if (p.t === 'coin' || p.t === 'chest') { p.x += (p.vx || 0) * dt; p.y += (p.vy || 0) * dt; if (p.vx) { p.vx *= .92; p.vy *= .92; } p.vz -= 900 * dt; p.z = Math.max(0, p.z + p.vz * dt); if (p.z === 0 && p.vz < 0) p.vz = -p.vz * .4; if (p.rot != null) p.rot += p.vr * dt; }
+    else if (p.t !== 'ring') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .9; p.vy *= .9; if (p.rot != null) p.rot += p.vr * dt; }
+  }
+  parts = parts.filter(p => p.life < p.max);
+  bolts.forEach(b => b.life += dt); bolts = bolts.filter(b => b.life < .3);
+  shakeCam = Math.max(0, shakeCam - dt * 2);
+  feverT = Math.max(0, feverT - dt);
+  if (day.running) updateDayBox();
+}
+function makeBolt(tx, ty) {
+  const pts = []; let x = tx + rand(-80, 80); const steps = 9;
+  for (let i = 0; i <= steps; i++) { const y = ty * i / steps; pts.push([x, y]); x += (tx - x) / (steps - i + 1) + rand(-18, 18); }
+  pts[pts.length - 1] = [tx, ty]; bolts.push({ pts, life: 0 }); sfx.bolt();
+}
+function render() {
+  const c = ctx; c.setTransform(1, 0, 0, 1, 0, 0);
+  const sx = shakeCam ? rand(-1, 1) * shakeCam * 10 : 0, sy = shakeCam ? rand(-1, 1) * shakeCam * 10 : 0;
+  c.drawImage(gcv, 0, 0);
+  c.setTransform(DPR, 0, 0, DPR, sx * DPR, sy * DPR);
+  const m = mods(), R = hitR(m);
+  for (const w of weeds) {
+    const hop = Math.abs(Math.sin(w.hop)) * 14 * K;
+    c.globalAlpha = .25; c.fillStyle = '#4a2c10'; c.beginPath(); c.ellipse(w.x, w.y + 4, 34 * w.size, 12 * w.size, 0, 0, TAU); c.fill(); c.globalAlpha = 1;
+    c.save(); c.translate(w.x, w.y - hop); c.rotate(w.rot); c.drawImage(tw, -48 * w.size, -48 * w.size, 96 * w.size, 96 * w.size); c.restore();
+  }
+  c.save(); c.setLineDash([6 * K, 6 * K]); c.lineDashOffset = -time * 20;
+  c.strokeStyle = ghostReady ? RAR.mythic.color : 'rgba(80,40,10,.45)'; c.lineWidth = ghostReady ? 3 : 2; c.fillStyle = ghostReady ? 'rgba(255,79,123,.1)' : 'rgba(90,50,15,.08)';
+  c.beginPath(); c.arc(hammer.x, hammer.y, R, 0, TAU); c.fill(); c.stroke(); c.restore();
+  for (const b of pigs) {
+    const sp = b.spawn < 1 ? 1 + 2.2 * Math.pow(b.spawn - 1, 3) + 1.2 * Math.pow(b.spawn - 1, 2) : 1;
+    c.fillStyle = 'rgba(60,30,8,.3)'; c.beginPath(); c.ellipse(b.x + 4 * K, b.y + 6 * K, b.s * 1.2 * sp, b.s * .95 * sp, 0, 0, TAU); c.fill();
+    c.save(); c.translate(b.x + Math.sin(time * 70) * b.shake * 3, b.y); c.rotate(b.rot);
+    c.scale(sp * (1 - .08 * b.shake), sp * (1 - .08 * b.shake));
+    if (b.kind.glow) { c.shadowColor = b.kind.glow; c.shadowBlur = 12 + Math.sin(time * 4) * 5; }
+    drawPig(c, b, b.s, time);
+    c.restore();
+    if (b.hp < b.maxHp) {
+      const w = b.s * 2, y = b.y - b.s * 1.3 - 10 * K;
+      c.fillStyle = 'rgba(30,15,5,.7)'; c.fillRect(b.x - w / 2 - 1, y - 1, w + 2, 6);
+      c.fillStyle = '#c2452d'; c.fillRect(b.x - w / 2, y, w * clamp(b.hp / b.maxHp, 0, 1), 4);
+    }
+  }
+  for (const p of parts) {
+    const a = 1 - p.life / p.max;
+    c.globalAlpha = Math.min(1, a * 2);
+    if (p.t === 'shard') {
+      c.save(); c.translate(p.x, p.y); c.rotate(p.rot); c.fillStyle = p.color; c.beginPath();
+      c.moveTo(0, -p.size * p.p[0]); c.lineTo(p.size * p.p[1], p.size * .6); c.lineTo(-p.size * p.p[2], p.size * .4); c.closePath(); c.fill(); c.restore();
+    } else if (p.t === 'coin') {
+      c.fillStyle = 'rgba(60,30,8,.25)'; c.beginPath(); c.ellipse(p.x, p.y, p.size, p.size * .6, 0, 0, TAU); c.fill();
+      const w = Math.abs(Math.cos(p.rot)) * p.size + 1;
+      c.fillStyle = '#ffcf4a'; c.strokeStyle = '#a8740e'; c.lineWidth = 1.5;
+      c.beginPath(); c.ellipse(p.x, p.y - p.z * .25, w, p.size, 0, 0, TAU); c.fill(); c.stroke();
+    } else if (p.t === 'spark') {
+      c.strokeStyle = p.color; c.lineWidth = 2.5; c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x - p.vx * .03, p.y - p.vy * .03); c.stroke();
+    } else if (p.t === 'dust') {
+      c.globalAlpha = a * .45; c.fillStyle = '#efd8ad'; c.beginPath(); c.arc(p.x, p.y, p.size * (1.6 - a * .6), 0, TAU); c.fill();
+    } else if (p.t === 'text') {
+      c.font = `${p.size}px Rye, Georgia, serif`; c.textAlign = 'center'; c.lineWidth = 4; c.strokeStyle = 'rgba(40,20,5,.85)';
+      c.strokeText(p.text, p.x, p.y); c.fillStyle = p.color; c.fillText(p.text, p.x, p.y);
+    } else if (p.t === 'ring') {
+      const k = p.life / p.max; c.strokeStyle = p.color; c.lineWidth = 4 * (1 - k) + 1;
+      c.beginPath(); c.arc(p.x, p.y, p.r * (.6 + k * .5), 0, TAU); c.stroke();
+    } else if (p.t === 'line') {
+      c.strokeStyle = '#ffe9a8'; c.lineWidth = 3; c.setLineDash([8, 6]);
+      c.beginPath(); c.moveTo(p.x, p.y); c.lineTo(p.x2, p.y2); c.stroke(); c.setLineDash([]);
+    } else if (p.t === 'chest') {
+      c.globalAlpha = Math.min(1, a * 3);
+      c.fillStyle = 'rgba(60,30,8,.3)'; c.beginPath(); c.ellipse(p.x, p.y + 10 * K, 26 * K, 8 * K, 0, 0, TAU); c.fill();
+      drawChest(c, p.x, p.y - p.z * .3, 52 * K);
+    }
+  }
+  c.globalAlpha = 1;
+  for (const b of bolts) {
+    c.save(); c.globalAlpha = 1 - b.life / .3; c.shadowColor = '#ffe066'; c.shadowBlur = 18; c.strokeStyle = '#fffbe0'; c.lineWidth = 4; c.lineJoin = 'round';
+    c.beginPath(); b.pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); c.restore();
+  }
+  if (herd) {
+    HERD.forEach(([ox, oy], i) => {
+      const x = herd.x + ox * K * herd.dir, y = herd.y + oy * K + Math.sin(time * 18 + i) * 3, d = herd.dir;
+      c.save(); c.translate(x, y); c.scale(K * 1.1, K * 1.1);
+      c.fillStyle = 'rgba(50,25,8,.3)'; c.beginPath(); c.ellipse(4, 6, 28, 15, 0, 0, TAU); c.fill();
+      c.fillStyle = HIDE[i % HIDE.length]; c.beginPath(); c.ellipse(0, 0, 26, 14, 0, 0, TAU); c.fill();
+      if (i % 4 === 3) { c.fillStyle = '#3a2414'; c.beginPath(); c.arc(-6, -3, 6, 0, TAU); c.arc(8, 5, 5, 0, TAU); c.fill(); }
+      c.fillStyle = '#2a170a'; c.beginPath(); c.ellipse(d * 26, 0, 10, 8, 0, 0, TAU); c.fill();
+      c.strokeStyle = '#efe2c0'; c.lineWidth = 2.5; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(d * 24, -7); c.quadraticCurveTo(d * 28, -16, d * 36, -15); c.moveTo(d * 24, 7); c.quadraticCurveTo(d * 28, 16, d * 36, 15); c.stroke();
+      c.restore();
+    });
+  }
+  if (feverT > 0) {
+    c.font = `${Math.round(16 + 8 * K)}px Rye, Georgia, serif`; c.textAlign = 'center'; c.lineWidth = 5;
+    const txt = `GOLD FEVER ×2 · ${Math.ceil(feverT)}s`;
+    c.strokeStyle = 'rgba(40,20,5,.85)'; c.strokeText(txt, W / 2, 132); c.fillStyle = '#ffd257'; c.fillText(txt, W / 2, 132);
+  }
+  const ph = hammer.phase, lift = ph < .78 ? Math.sin(ph / .78 * Math.PI / 2) : 1 - (ph - .78) / .22;
+  const id = S.equipped, glow = id && S.abil[id] && ABMAP[id] ? RAR[ABMAP[id].r].color : null;
+  drawHammer(c, hammer.x, hammer.y, clamp(lift, 0, 1), K, glow);
+}
+
+/* ---------- Input ---------- */
+function stagePos(e) { const r = stage.getBoundingClientRect(); return { x: clamp(e.clientX - r.left, 0, r.width), y: clamp(e.clientY - r.top, 0, r.height) }; }
+function aim(e) { const p = stagePos(e); hammer.tx = p.x; hammer.ty = e.pointerType === 'mouse' ? p.y : p.y - 40 * K; hammer.moved = true; }
+stage.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { aim(e); stage.classList.add('mouse'); } else if (e.buttons) aim(e); });
+stage.addEventListener('pointerdown', e => { userActed = true; if (!e.target.closest('button')) aim(e); });
+stage.addEventListener('pointerleave', () => stage.classList.remove('mouse'));
+document.addEventListener('pointerdown', () => { userActed = true; }, { capture: true });
+window.addEventListener('keydown', e => {
+  userActed = true;
+  if (e.key === 'Escape' && !$('#modal').hidden && !$('#reveal').hidden) closeModal();
+  if (e.key === 'Enter' && !day.running && $('#modal').hidden && !(e.target instanceof HTMLButtonElement)) { startDay(); return; }
+  const step = 40 * K, map = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+  if (map && $('#modal').hidden && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); hammer.tx = clamp(hammer.tx + map[0] * step, 0, W); hammer.ty = clamp(hammer.ty + map[1] * step, 0, H); hammer.moved = true; }
+});
+
+/* ---------- UI ---------- */
+const abIcon = (ab, owned) => `<div class="badgeic${owned ? '' : ' dim'}" style="--rc:${RAR[ab.r].color}">${owned ? ab.icon : '?'}</div>`;
+function toast(msg, color) {
+  const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; if (color) el.style.setProperty('--tc', color);
+  const box = $('#toasts'); box.appendChild(el); while (box.children.length > 3) box.firstChild.remove();
+  setTimeout(() => el.remove(), 2600);
+}
+function updateDayBox() {
+  const q = day.running ? day.quota : quota(S.day), cnt = day.running ? day.count : 0, t = day.running ? day.t : dayLength(S.watch);
+  $('#dayName').textContent = `Day ${S.day}`;
+  const ck = $('#dayClock'); ck.textContent = clock(t); ck.classList.toggle('hurry', day.running && t <= 5);
+  $('#dayBar').style.width = Math.min(100, cnt / q * 100) + '%';
+  $('#dayBarWrap').classList.toggle('done', cnt >= q);
+  $('#dayTxt').textContent = cnt >= q ? `${cnt} / ${q} piggies · day cleared, keep smashing!` : `${cnt} / ${q} piggies`;
+}
+function updateHUD() {
+  $('#hCash').textContent = cash(S.cash); $('#hDay').textContent = S.day; $('#hSmashed').textContent = fmt(S.smashed);
+  const nk = nextKind();
+  $('#dayNext').textContent = nk ? `Next piggy: ${nk.name} on day ${nk.unlock}` : 'Every piggy unlocked';
+  updateDayBox(); updateShop();
+}
+setInterval(() => { if (S) updateHUD(); }, 250);
+function setTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
+  ['chest', 'abil', 'pigs', 'shop'].forEach(n => { $('#p-' + n).hidden = n !== name; });
+  if (name === 'abil') { S.seen = Object.assign({}, S.abil); markDirty(); renderAbilities(); }
+  if (name === 'pigs') renderPigs();
+  if (name === 'shop') renderShop();
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
+
+$('#oddsBar').innerHTML = RORDER.map(r => `<i style="width:${ODDS[r]}%;background:${RAR[r].color}" title="${RAR[r].name}: ${ODDS[r]}%"></i>`).join('');
+$('#legend').innerHTML = RORDER.map(r => `<div><i style="background:${RAR[r].color}"></i><span>${RAR[r].name}</span><b>${ODDS[r]}%</b></div>`).join('');
+(() => { const p = $('#chestPreview'); p.width = 400; p.height = 300; const c = p.getContext('2d'); c.scale(2, 2); drawChest(c, 100, 92, 130); })();
+$('#openBtn').addEventListener('click', () => openChest(1));
+$('#open10Btn').addEventListener('click', () => openChest(10));
+$('#openAllBtn').addEventListener('click', () => openChest(S.chests));
+function renderChest() {
+  $('#chestCount').textContent = '× ' + S.chests;
+  $('#openBtn').disabled = S.chests <= 0;
+  $('#open10Btn').disabled = S.chests < 2;
+  $('#open10Btn').textContent = `Open ${Math.max(2, Math.min(10, S.chests))}`;
+  $('#openAllBtn').disabled = S.chests < 2;
+  $('#openAllBtn').textContent = S.chests >= 2 ? `Open all (${S.chests})` : 'Open all';
+  const b = $('#chestBadge'); b.textContent = S.chests; b.dataset.zero = S.chests ? '0' : '1';
+}
+function renderAbilities() {
+  $('#abilCount').textContent = `${Object.keys(S.abil).length} / ${AB.length}`;
+  const unseen = Object.keys(S.abil).filter(id => (S.seen[id] || 0) < S.abil[id]).length;
+  const ab = $('#abilBadge'); ab.textContent = unseen; ab.dataset.zero = unseen ? '0' : '1';
+  $('#abilList').innerHTML = RORDER.map(r => {
+    const list = AB.filter(a => a.r === r), have = list.filter(a => S.abil[a.id]).length;
+    return `<div class="ab-group"><div class="sect-h"><span style="color:${RAR[r].color}">${RAR[r].name}</span><span>${have} / ${list.length}</span></div>` +
+      list.map(a => {
+        const l = S.abil[a.id], eq = S.equipped === a.id;
+        if (!l) return `<div class="ab locked" style="--rc:${RAR[r].color}"><div class="ic">${abIcon(a, false)}</div><div><div class="ab-name">Unknown ability</div><div class="ab-desc">Found in chests</div></div><span></span></div>`;
+        return `<div class="ab${eq ? ' equipped' : ''}" style="--rc:${RAR[r].color}"><div class="ic">${abIcon(a, true)}</div>
+          <div style="min-width:0"><div class="ab-name">${a.name}</div><div class="ab-desc">${a.desc(l)}</div>
+          <div class="pips" aria-label="Level ${l} of ${MAXLV}">${Array.from({ length: MAXLV }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('')}</div></div>
+          ${eq ? `<button class="btn ghost" data-unequip="1" type="button">Unequip</button>` : `<button class="btn" data-equip="${a.id}" type="button">Equip</button>`}</div>`;
+      }).join('') + '</div>';
+  }).join('');
+}
+$('#abilList').addEventListener('click', e => { const b = e.target.closest('[data-equip],[data-unequip]'); if (b) equip(b.dataset.equip || null); });
+function equip(id) {
+  S.equipped = id; swingCount = 0; boltT = 0; ghostT = 0; ghostReady = false; stampT = 0; markDirty(); save();
+  renderAbilities(); renderEquipChip();
+  if (id) { sfx.buy(); toast(`${ABMAP[id].name} equipped`, RAR[ABMAP[id].r].color); }
+}
+function renderEquipChip() {
+  const id = S.equipped, el = $('#equipChip');
+  if (id && S.abil[id] && ABMAP[id]) {
+    const a = ABMAP[id];
+    el.innerHTML = `<div class="ic">${abIcon(a, true)}</div><div style="min-width:0"><div class="t1">Equipped · lvl ${S.abil[id]}</div><div class="t2" style="color:${RAR[a.r].color}">${a.name}</div></div>`;
+  } else {
+    el.innerHTML = `<div class="ic"><div class="badgeic dim">–</div></div><div><div class="t1">No ability equipped</div><div class="t2">Open a chest</div></div>`;
+  }
+}
+$('#equipChip').addEventListener('click', () => setTab(Object.keys(S.abil).length ? 'abil' : 'chest'));
+function renderPigs() {
+  const have = unlockedKinds().length, newest = unlockedKinds().slice(-1)[0];
+  $('#kindCount').textContent = `${have} / ${KINDS.length}`;
+  $('#kindList').innerHTML = KINDS.map((k, i) => {
+    const open = k.unlock <= S.day;
+    const sub = open ? `${fmt(pigHp(k))} HP · ${cash(pigCash(k))} each${k.chest > 1 ? ` · ${num1(k.chest)}× chest chance` : ''}` : `Shows up on day ${k.unlock}`;
+    return `<div class="card kind${open ? '' : ' locked'}${k === newest ? ' newest' : ''}"><canvas data-kind="${i}" width="128" height="96" aria-hidden="true"></canvas>
+      <div style="min-width:0"><div class="kn">${open ? k.name : '???'}${k === newest ? '<em>Newest</em>' : ''}</div><div class="si-sub">${sub}</div>
+      ${open ? `<div class="traits">${TRAITS[k.id].map(([w, t]) => `<div><b>${w}:</b> ${t}</div>`).join('')}</div>` : ''}</div></div>`;
+  }).join('');
+  document.querySelectorAll('#kindList canvas').forEach(cvs => {
+    const k = KINDS[+cvs.dataset.kind], c = cvs.getContext('2d');
+    c.scale(2, 2); c.translate(30, 24);
+    drawPig(c, { kind: k, hp: 1, maxHp: 1, cracks: [], seed: 0 }, 14, 0);
+    if (k.unlock > S.day) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(28,16,6,.92)'; c.fillRect(0, 0, 128, 96); }
+  });
+}
+function updateShop() {
+  const row = (lvId, subId, btnId, lv, max, cur, next, cost, unit) => {
+    $(lvId).textContent = max ? `lvl ${lv}/${max}` : `lvl ${lv}`;
+    const b = $(btnId);
+    if (max && lv >= max) { $(subId).innerHTML = `${unit} <b>${cur}</b> · max`; b.textContent = 'Max'; b.disabled = true; }
+    else { $(subId).innerHTML = `${unit} <b>${cur}</b> → <b>${next}</b>`; b.textContent = cash(cost); b.disabled = S.cash < cost; }
+  };
+  row('#sSpdLv', '#sSpdSub', '#buySpeed', S.speed, SPEEDMAX, num2(swingRate(S.speed)), num2(swingRate(S.speed + 1)), speedCost(S.speed), 'Swings/sec');
+  row('#sHamLv', '#sHamSub', '#buyHammer', S.hammer, 0, fmt(hammerDmg(S.hammer)), fmt(hammerDmg(S.hammer + 1)), hammerCost(S.hammer), 'Damage');
+  row('#sWatchLv', '#sWatchSub', '#buyWatch', S.watch, WATCHMAX, dayLength(S.watch) + ' s', dayLength(S.watch + 1) + ' s', watchCost(S.watch), 'Day length');
+  row('#sLuckLv', '#sLuckSub', '#buyLuck', S.luck, LUCKMAX, num1(chestBase(S.luck) * 100) + '%', num1(chestBase(S.luck + 1) * 100) + '%', luckCost(S.luck), 'Chest chance');
+}
+function renderShop() {
+  updateShop();
+  $('#statsTxt').innerHTML = `Furthest day: <b>${S.best}</b><br>Swings: <b>${fmt(S.swings)}</b><br>Piggies smashed: <b>${fmt(S.smashed)}</b><br>Chests opened: <b>${fmt(S.opened)}</b><br>Abilities found: <b>${Object.keys(S.abil).length} / ${AB.length}</b>`;
+}
+function buy(costFn, key, max) { return () => { if (max && S[key] >= max) return; const c = costFn(S[key]); if (S.cash < c) return; S.cash -= c; S[key]++; sfx.buy(); markDirty(); save(); updateHUD(); if (!day.running) readyCardRefresh(); }; }
+function readyCardRefresh() { if (!$('#dayOver').hidden && $('#doTitle').textContent === `Day ${S.day}`) readyCard(); }
+$('#buySpeed').addEventListener('click', buy(speedCost, 'speed', SPEEDMAX));
+$('#buyHammer').addEventListener('click', buy(hammerCost, 'hammer', 0));
+$('#buyWatch').addEventListener('click', buy(watchCost, 'watch', WATCHMAX));
+$('#buyLuck').addEventListener('click', buy(luckCost, 'luck', LUCKMAX));
+let resetArm = 0;
+$('#resetBtn').addEventListener('click', () => {
+  const b = $('#resetBtn');
+  if (Date.now() - resetArm < 3500) { S = fresh(); pigs = []; day.running = false; save(); renderAll(); readyCard(); b.textContent = 'Reset game'; resetArm = 0; toast('Game reset'); return; }
+  resetArm = Date.now(); b.textContent = 'Click again to erase everything';
+  setTimeout(() => { if (Date.now() - resetArm >= 3400) b.textContent = 'Reset game'; }, 3600);
+});
+$('#muteBtn').addEventListener('click', () => {
+  muted = !muted; $('#muteBtn').textContent = muted ? 'Sound: off' : 'Sound: on';
+  try { localStorage.setItem(KEY + '-mute', muted ? '1' : '0'); } catch (e) {}
+});
+$('#muteBtn').textContent = muted ? 'Sound: off' : 'Sound: on';
+
+/* ---------- Chest opening ---------- */
+const mcv = $('#chestCv'), mctx = mcv.getContext('2d');
+let M = null, mLast = 0;
+function rollRarity() { const tot = RORDER.reduce((a, r) => a + ODDS[r], 0); let x = Math.random() * tot; for (const r of RORDER) { x -= ODDS[r]; if (x <= 0) return r; } return 'common'; }
+function grant(rarity) {
+  const pool = AB.filter(a => a.r === rarity), ab = pool[Math.floor(Math.random() * pool.length)];
+  const cur = S.abil[ab.id] || 0;
+  if (!cur) { S.abil[ab.id] = 1; return { ab, kind: 'new', lvl: 1 }; }
+  if (cur < MAXLV) { S.abil[ab.id] = cur + 1; return { ab, kind: 'up', lvl: cur + 1 }; }
+  const coins = Math.round(RAR[rarity].val * (1 + S.day / 10)); S.cash += coins;
+  return { ab, kind: 'max', lvl: cur, coins };
+}
+function openChest(n = 1) {
+  n = Math.min(n, S.chests);
+  if (M || !(n > 0)) return;
+  S.chests -= n; S.opened += n;
+  const list = Array.from({ length: n }, () => grant(rollRarity()));
+  const res = list.reduce((a, b) => RORDER.indexOf(b.ab.r) > RORDER.indexOf(a.ab.r) ? b : a);
+  markDirty(); save();
+  M = { res, list, n, t: 0, revealed: false, sparks: [] };
+  $('#modal').hidden = false; $('#reveal').hidden = true; $('#modalHint').hidden = false;
+  const r = mcv.getBoundingClientRect(); mcv.width = Math.round(r.width * DPR); mcv.height = Math.round(r.height * DPR);
+  renderChest(); updateHUD();
+  mLast = performance.now(); requestAnimationFrame(modalLoop);
+}
+function modalLoop(now) {
+  if (!M) return;
+  const dt = Math.min(.05, (now - mLast) / 1000); mLast = now; M.t += dt;
+  const c = mctx, w = mcv.width / DPR, h = mcv.height / DPR, col = RAR[M.res.ab.r].color;
+  c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
+  let open = 0, ox = 0, oy = 0;
+  if (M.t < .9) { const k = M.t / .9; ox = Math.sin(M.t * 55) * k * 7; oy = -Math.abs(Math.sin(M.t * 30)) * k * 4; if (Math.random() < dt * 12) sfx.rattle(); }
+  else open = 1 - Math.pow(1 - clamp((M.t - .9) / .35, 0, 1), 3);
+  if (M.t >= .9 && !M.burst) {
+    M.burst = true; const n = 12 + RORDER.indexOf(M.res.ab.r) * 12;
+    for (let i = 0; i < n; i++) M.sparks.push({ x: w / 2, y: h * .55, vx: rand(-200, 200), vy: rand(-380, -80), life: 0, max: rand(.8, 1.6) });
+  }
+  drawChest(c, w / 2 + ox, h * .62 + oy, Math.min(w * .6, 200), open, M.t < .9 ? null : col, M.t);
+  for (const p of M.sparks) {
+    p.life += dt; p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+    c.globalAlpha = clamp(1 - p.life / p.max, 0, 1); c.fillStyle = col; c.beginPath(); c.arc(p.x, p.y, 3, 0, TAU); c.fill();
+  }
+  c.globalAlpha = 1; M.sparks = M.sparks.filter(p => p.life < p.max);
+  if (M.t > 1.2 && !M.revealed) reveal();
+  requestAnimationFrame(modalLoop);
+}
+const noteFor = x => x.kind === 'new' ? 'New ability!' : x.kind === 'up' ? `Level up: ${x.lvl - 1} → ${x.lvl}` : `Already max level · +${cash(x.coins)}`;
+function syncRowEquip() { document.querySelectorAll('[data-requip]').forEach(b => { const on = b.dataset.requip === S.equipped; b.textContent = on ? 'Equipped' : 'Equip'; b.disabled = on; }); }
+function reveal() {
+  M.revealed = true; const multi = M.list.length > 1, { ab, lvl } = M.res, r = RAR[ab.r];
+  const box = $('#reveal'); box.style.setProperty('--rc', r.color);
+  ['#rvIc', '#rvName', '#rvDesc', '#rvNote', '#rvEquip'].forEach(id => { $(id).hidden = multi; });
+  $('#rvList').hidden = !multi;
+  if (multi) {
+    $('#rvRar').textContent = `${M.list.length} chests opened · best: ${r.name}`;
+    const sorted = [...M.list].sort((a, b) => RORDER.indexOf(b.ab.r) - RORDER.indexOf(a.ab.r));
+    $('#rvList').innerHTML = sorted.map(x => `<div class="rv-row" style="--rc:${RAR[x.ab.r].color}"><div class="ic">${abIcon(x.ab, true)}</div>
+      <div style="min-width:0"><div class="ab-name" style="color:var(--rc)">${x.ab.name}</div><div class="ab-desc">${RAR[x.ab.r].name} · ${noteFor(x)}</div></div>
+      <button class="btn ghost" data-requip="${x.ab.id}" type="button">Equip</button></div>`).join('');
+    syncRowEquip();
+  } else {
+    $('#rvRar').textContent = r.name; $('#rvIc').innerHTML = abIcon(ab, true);
+    $('#rvName').textContent = ab.name; $('#rvDesc').textContent = ab.desc(lvl);
+    $('#rvNote').textContent = noteFor(M.res);
+    const eq = $('#rvEquip');
+    if (S.equipped === ab.id) { eq.textContent = 'Equipped'; eq.disabled = true; } else { eq.textContent = 'Equip'; eq.disabled = false; }
+  }
+  const again = $('#rvAgain'), nx = Math.min(M.n, S.chests);
+  again.hidden = nx <= 0; again.textContent = M.n > 1 ? `Open ${nx} more` : `Open another (${S.chests})`;
+  box.hidden = false; $('#modalHint').hidden = true;
+  sfx.reveal(ab.r); renderAbilities(); renderEquipChip(); renderShop(); updateHUD();
+}
+function closeModal() { M = null; $('#modal').hidden = true; renderAll(); }
+mcv.addEventListener('click', () => { if (M && M.t < .9) M.t = .9; });
+$('#rvEquip').addEventListener('click', () => { if (!M) return; equip(M.res.ab.id); $('#rvEquip').textContent = 'Equipped'; $('#rvEquip').disabled = true; });
+$('#rvAgain').addEventListener('click', () => { if (!M) return; const n = M.n; M = null; openChest(n); });
+$('#rvList').addEventListener('click', e => { const b = e.target.closest('[data-requip]'); if (b) { equip(b.dataset.requip); syncRowEquip(); } });
+$('#rvClose').addEventListener('click', closeModal);
+
+function renderAll() { renderChest(); renderAbilities(); renderEquipChip(); renderPigs(); renderShop(); updateHUD(); }
+
+/* ---------- Boot ---------- */
+function start(data) {
+  S = (data && data.S && data.S.game === GAME) ? sanitize(data.S) : load();
+  if (window.claude?.hot?.snapshot) window.claude.hot.snapshot(() => ({ S }));
+  new ResizeObserver(resize).observe(stage); resize();
+  requestAnimationFrame(t => { last = t; frame(t); });
+  try { renderAll(); readyCard(); } catch (e) { console.error(e); }
+  setInterval(() => { if (dirty) save(); }, 1500);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body></html>
