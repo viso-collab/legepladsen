@@ -1,10 +1,20 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Piggy Smash</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Zilla+Slab:wght@400;600;700&display=swap">
 <style>
+/* Base reset (the Claude artifact viewer adds this automatically) */
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+
 /* Layout: top-down desert yard on the left where piggy banks roam, a plank-wood counter with tabs on the right; stacks on phones */
 :root{
   --bg:#22150c; --panel:#3a2514; --panel-2:#4a2f19; --line:#6b4627;
@@ -26,14 +36,18 @@ button{font:inherit;color:inherit}
 .stat b{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 .stat span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;font-weight:700}
 .stat.cash b{color:var(--gold)}
+.stat.lives b{color:#e2533f;letter-spacing:.08em}
+.lockmsg{background:rgba(194,69,45,.18);border:1px solid rgba(230,120,90,.4);border-radius:8px;padding:8px 10px;color:#f2b8a6}
 .iconbtn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-weight:700;font-size:14px;cursor:pointer}
 .iconbtn:hover{background:var(--panel-2)}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 
-.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:12px}
-.stage{position:relative;border-radius:10px;overflow:hidden;min-height:440px;background:#d6aa70;touch-action:none;user-select:none;-webkit-user-select:none;
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:12px;transition:grid-template-columns .4s ease}
+@media (min-width:901px){.app.shop .layout{grid-template-columns:minmax(0,1fr) minmax(470px,50%)}}
+@media (prefers-reduced-motion:reduce){.layout{transition:none}}
+.stage{position:relative;border-radius:10px;overflow:hidden;min-height:460px;background:#d6aa70;touch-action:none;user-select:none;-webkit-user-select:none;
   border:6px solid #5a371a;box-shadow:inset 0 0 0 2px #2a170a,0 0 0 2px #2a170a}
-.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage canvas#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
 .stage.mouse{cursor:none}
 .daybox{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:min(300px,70%);text-align:center;pointer-events:none;
   background:rgba(43,24,8,.85);border:1px solid #7a5230;border-radius:8px;padding:7px 12px 9px}
@@ -52,11 +66,17 @@ button{font:inherit;color:inherit}
 .dcard p b{color:var(--fg)}
 .dcard .unlock{color:#ffd257;font-weight:700;margin-top:10px}
 .dcard .btn{margin-top:16px}
-.equip-chip{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:10px;background:rgba(43,24,8,.85);border:1px solid #7a5230;border-radius:10px;padding:7px 12px 7px 7px;cursor:pointer;max-width:calc(100% - 20px);text-align:left}
-.equip-chip .ic{width:34px;height:34px;flex:none}
-.equip-chip .t1{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
-.equip-chip .t2{font-weight:700;font-size:15px}
-.hint{position:absolute;right:12px;bottom:14px;font-size:13px;color:#4a2c12;font-weight:700;pointer-events:none}
+
+.wchip{display:grid;grid-template-columns:48px minmax(0,1fr);gap:10px;align-items:center;
+  background:rgba(0,0,0,.28);border:0;border-left:4px solid var(--rc,#7a5230);border-bottom:1px solid #24150a;padding:8px 12px 8px 8px;cursor:pointer;
+  width:100%;box-sizing:border-box;text-align:left}
+.wchip:hover{background:rgba(0,0,0,.38)}
+.shopbar{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;background:var(--gold);color:var(--gold-ink);padding:8px 14px;font-size:14px;font-weight:600}
+.shopbar b{font-family:var(--display);font-weight:400;font-size:16px}
+.wchip canvas{width:48px;height:48px}
+.wchip .t1{font-weight:700;font-size:15px;color:var(--rc,var(--fg));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wchip .t2{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.wchip .t3{font-size:13px;line-height:1.3}
 
 .panel{display:flex;flex-direction:column;min-height:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;
   background:repeating-linear-gradient(180deg,rgba(0,0,0,.12) 0 2px,transparent 2px 54px),var(--panel)}
@@ -66,8 +86,16 @@ button{font:inherit;color:inherit}
 .badge{background:var(--red);color:#fff;border-radius:99px;font-size:12px;min-width:20px;height:20px;line-height:20px;padding:0 6px;box-sizing:border-box}
 .badge[data-zero="1"]{display:none}
 .pbody{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:12px}
-.sect-h{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;display:flex;justify-content:space-between}
+.sect-h{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .card{background:rgba(20,10,4,.35);border:1px solid rgba(255,220,160,.08);border-radius:10px;padding:12px}
+.btn{background:var(--gold);color:var(--gold-ink);border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:15px;white-space:nowrap;box-shadow:0 3px 0 #9a6a1c}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #9a6a1c}
+.btn:disabled{background:#4d3a28;color:#8a7358;box-shadow:none;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);box-shadow:none}
+.btn.danger{background:transparent;color:#e67a5f;border:1px solid currentColor;box-shadow:none}
+.btn.big{font-size:17px;padding:12px 22px}
+.btn.sm{padding:6px 10px;font-size:13px}
+.note{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
 
 .chest-card{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
 .chest-card canvas{width:200px;height:150px;max-width:100%}
@@ -78,27 +106,43 @@ button{font:inherit;color:inherit}
 .legend b{font-variant-numeric:tabular-nums;color:var(--muted)}
 .odds{display:flex;height:10px;border-radius:99px;overflow:hidden;background:rgba(0,0,0,.3)}
 .odds i{display:block;height:100%}
-.btn{background:var(--gold);color:var(--gold-ink);border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:15px;white-space:nowrap;box-shadow:0 3px 0 #9a6a1c}
-.btn:active:not(:disabled){transform:translateY(2px);box-shadow:0 1px 0 #9a6a1c}
-.btn:disabled{background:#4d3a28;color:#8a7358;box-shadow:none;cursor:not-allowed}
-.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);box-shadow:none}
-.btn.danger{background:transparent;color:#e67a5f;border:1px solid currentColor;box-shadow:none}
-.btn.big{font-size:17px;padding:12px 22px}
-.note{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
 
-.ab-group{display:flex;flex-direction:column;gap:8px}
-.ab{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(20,10,4,.35);border-radius:10px;padding:10px;border:1px solid transparent}
-.ab.equipped{border-color:var(--rc);box-shadow:0 0 0 1px var(--rc) inset,0 0 18px -6px var(--rc)}
-.ab.locked{opacity:.5}
-.ab .ic{width:44px;height:44px}
-.ab-name{font-weight:700;font-size:15px}
-.ab-desc{font-size:13.5px;color:var(--muted);line-height:1.35;margin-top:2px}
-.pips{display:flex;gap:3px;margin-top:5px}
-.pips i{width:12px;height:4px;border-radius:2px;background:rgba(255,255,255,.12)}
-.pips i.on{background:var(--rc)}
-.ab .btn{padding:8px 11px;font-size:14px}
-.badgeic{display:grid;place-items:center;width:100%;height:100%;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);background:var(--rc);color:#1a0f06;font-weight:700;font-size:15px;line-height:1;padding-top:3px;box-sizing:border-box}
-.badgeic.dim{background:#5a4430;color:#8a7358}
+/* Weapons */
+.wcur{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;align-items:center;border-left:4px solid var(--rc,#7a5230)}
+.wcur canvas{width:120px;height:96px}
+.wname{font-weight:700;font-size:17px;color:var(--rc,var(--fg))}
+.wrar{font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:700;color:var(--muted)}
+.wlines{font-size:13.5px;line-height:1.45;margin-top:4px}
+.wlines div{color:var(--muted)}
+.wlines b{color:var(--fg);font-weight:700}
+.wrow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(20,10,4,.35);border-radius:10px;padding:8px;border-left:3px solid var(--rc)}
+.wrow.on{box-shadow:0 0 0 1px var(--rc) inset,0 0 16px -6px var(--rc)}
+.wrow canvas{width:56px;height:44px}
+.wrow.locked{opacity:.55}
+.wrow .wname{font-size:15px}
+.wrow .acts{display:flex;flex-direction:column;gap:5px}
+
+/* Skill tree */
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:rgba(0,0,0,.3);border-radius:10px;padding:4px;gap:4px}
+.seg button{background:none;border:0;border-radius:7px;padding:9px 4px;font-weight:700;font-size:14px;color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}
+.tree{display:flex;flex-direction:column;align-items:stretch}
+.tier{display:grid;gap:8px;grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+.link{height:18px;position:relative}
+.link::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:3px;margin-left:-1.5px;background:var(--line);border-radius:2px}
+.tier.two + .link::before{left:25%;box-shadow:calc(var(--w,0px)) 0 0 var(--line)}
+.node{background:rgba(20,10,4,.4);border:1px solid rgba(255,220,160,.12);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.node.owned{border-color:#8a6a3a}
+.node.maxed{border-color:var(--gold);box-shadow:0 0 14px -6px var(--gold)}
+.node.locked{opacity:.55}
+.nh{display:flex;justify-content:space-between;gap:6px;align-items:baseline}
+.nn{font-weight:700;font-size:14.5px;line-height:1.2}
+.nl{font-size:12px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.nd{font-size:12.5px;line-height:1.35;color:var(--muted)}
+.nd b{color:var(--fg);font-weight:600}
+.nd.next{color:#d9c49a}
+.node .btn{padding:7px 8px;font-size:13.5px;margin-top:2px}
+.req{font-size:12px;color:#e6957a;font-weight:600}
 
 .kind{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:center}
 .kind canvas{width:64px;height:48px}
@@ -108,57 +152,53 @@ button{font:inherit;color:inherit}
 .kn em{font-style:normal;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold-ink);background:var(--gold);border-radius:4px;padding:1px 6px}
 .traits{font-size:13.5px;line-height:1.4;margin-top:6px;display:flex;flex-direction:column;gap:2px}
 .traits b{color:var(--gold);font-weight:700}
-.shop-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center}
-.si-name{font-weight:700;font-size:16px}
 .si-sub{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums}
 .si-sub b{color:var(--fg)}
 
 .modal{position:fixed;inset:0;z-index:50;background:rgba(15,8,3,.85);display:grid;place-items:center;padding:16px}
-.modal-card{width:min(420px,100%);display:flex;flex-direction:column;align-items:center;gap:10px}
-#chestCv{width:min(340px,90vw);height:min(260px,68vw);cursor:pointer}
+.modal-card{width:min(440px,100%);display:flex;flex-direction:column;align-items:center;gap:10px}
+#chestCv{width:min(340px,90vw);height:min(240px,62vw);cursor:pointer}
 .modal-hint{font-weight:700;color:var(--muted);font-size:14px}
 .reveal{width:100%;box-sizing:border-box;background:var(--panel);border:2px solid var(--rc);border-radius:12px;padding:18px;text-align:center;box-shadow:0 0 40px -10px var(--rc);animation:pop .35s cubic-bezier(.2,1.5,.4,1)}
 @keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
 .rv-rar{font-size:13px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--rc)}
-.rv-ic{width:68px;height:68px;margin:10px auto 6px}
-.rv-ic .badgeic{font-size:24px}
-.rv-name{font-family:var(--display);font-size:26px;line-height:1.15;text-wrap:balance}
-.rv-desc{color:var(--muted);margin-top:6px;line-height:1.4}
+#rvCv{width:180px;height:130px;margin:4px auto 0;display:block}
+.rv-name{font-family:var(--display);font-size:24px;line-height:1.15;text-wrap:balance}
+.rv-desc{color:var(--muted);margin-top:6px;line-height:1.45}
+.rv-desc b{color:var(--fg)}
 .rv-note{margin-top:10px;font-weight:700;color:var(--gold)}
 .rv-list{display:flex;flex-direction:column;gap:6px;margin-top:12px;max-height:44vh;overflow:auto;text-align:left}
-.rv-row{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;background:rgba(20,10,4,.35);border-radius:8px;padding:7px 8px;border-left:3px solid var(--rc)}
-.rv-row .ic{width:36px;height:36px}
-.rv-row .btn{padding:6px 10px;font-size:13px}
 .rv-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px}
 
 .toasts{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:60;pointer-events:none;width:min(360px,calc(100% - 32px))}
 .toast{background:var(--panel-2);border:1px solid var(--line);border-left:4px solid var(--tc,var(--gold));border-radius:8px;padding:10px 14px;font-weight:700;font-size:15px;animation:tin .25s ease-out;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 @keyframes tin{from{transform:translateY(-8px);opacity:0}}
 
-@media (max-width:880px){
+@media (max-width:900px){
   .app{height:auto;min-height:100%}
   .layout{grid-template-columns:minmax(0,1fr)}
-  .stage{min-height:0;height:58svh;max-height:600px}
+  .stage{min-height:0;height:60svh;max-height:620px}
   .pbody{overflow:visible}
-  .hint{display:none}
   .brand{font-size:24px}
 }
 @media (prefers-reduced-motion:reduce){.reveal,.toast{animation:none}}
 </style>
-
+</head>
+<body>
 <div class="app">
   <header class="bar">
-    <div class="brand">Piggy Smash<small>Smash piggy banks · find chests · equip one ability</small></div>
+    <div class="brand">Piggy Smash<small>Smash piggy banks · loot weapons · grow your skill tree</small></div>
     <div class="stats">
       <div class="stat cash"><b id="hCash">$0</b><span>Cash</span></div>
       <div class="stat"><b id="hDay">1</b><span>Day</span></div>
+      <div class="stat lives"><b id="hLives">♥♥♥</b><span>Lives</span></div>
       <div class="stat"><b id="hSmashed">0</b><span>Smashed</span></div>
     </div>
     <button class="iconbtn" id="muteBtn" type="button">Sound: on</button>
   </header>
 
   <main class="layout">
-    <section class="stage" id="stage" aria-label="Desert yard. Move the hammer over the piggy banks; it swings on its own.">
+    <section class="stage" id="stage" aria-label="Desert yard. Move your weapon over the piggy banks; it swings on its own.">
       <canvas id="cv"></canvas>
       <div class="daybox">
         <div class="dayname"><span id="dayName">Day 1</span><span class="clock" id="dayClock">0:30</span></div>
@@ -166,26 +206,41 @@ button{font:inherit;color:inherit}
         <div class="daytxt" id="dayTxt">0 / 8 piggies</div>
         <div class="daytxt" id="dayNext" style="color:#ffd257"></div>
       </div>
-      <button class="equip-chip" id="equipChip" type="button"></button>
-      <div class="hint">Move your hammer over the piggies. It swings on its own.</div>
       <div class="dayover" id="dayOver">
         <div class="dcard">
           <h2 id="doTitle">Day 1</h2>
           <div id="doBody"></div>
+          <div class="unlock" id="doNudge"></div>
           <button class="btn big" id="startDay" type="button">Start day 1</button>
         </div>
       </div>
     </section>
 
     <aside class="panel">
+      <button class="wchip" id="wchip" type="button" aria-label="Equipped weapon">
+        <canvas id="chipCv" width="96" height="96" aria-hidden="true"></canvas>
+        <div style="min-width:0"><div class="t1" id="chipName"></div><div class="t2" id="chipRar"></div><div class="t3" id="chipTrait"></div></div>
+      </button>
+      <div class="shopbar" id="shopBar" hidden><b>Between days</b><span id="shopTxt"></span></div>
       <nav class="tabs" role="tablist">
-        <button class="tab" role="tab" aria-selected="true" data-tab="chest" type="button">Chests <span class="badge" id="chestBadge">0</span></button>
-        <button class="tab" role="tab" aria-selected="false" data-tab="abil" type="button">Abilities <span class="badge" id="abilBadge" data-zero="1">0</span></button>
+        <button class="tab" role="tab" aria-selected="true" data-tab="skills" type="button">Skills</button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="chest" type="button">Chests <span class="badge" id="chestBadge">0</span></button>
+        <button class="tab" role="tab" aria-selected="false" data-tab="weapons" type="button">Weapons <span class="badge" id="wBadge" data-zero="1">0</span></button>
         <button class="tab" role="tab" aria-selected="false" data-tab="pigs" type="button">Piggies</button>
-        <button class="tab" role="tab" aria-selected="false" data-tab="shop" type="button">Store</button>
       </nav>
 
-      <div class="pbody" id="p-chest">
+      <div class="pbody" id="p-skills">
+        <div class="seg" id="seg">
+          <button type="button" data-path="ranch" aria-pressed="true">Ranch</button>
+          <button type="button" data-path="abil" aria-pressed="false">Abilities</button>
+          <button type="button" data-path="hammer" aria-pressed="false">Hammer</button>
+        </div>
+        <p class="note lockmsg" id="skillLock" hidden>Skills are locked while a day is running. Finish the day to upgrade.</p>
+        <p class="note" id="pathBlurb"></p>
+        <div class="tree" id="tree"></div>
+      </div>
+
+      <div class="pbody" id="p-chest" hidden>
         <div class="card chest-card">
           <canvas id="chestPreview" aria-hidden="true"></canvas>
           <div class="chest-count" id="chestCount">× 0</div>
@@ -196,46 +251,30 @@ button{font:inherit;color:inherit}
           </div>
         </div>
         <div class="card" style="display:flex;flex-direction:column;gap:10px">
-          <div class="sect-h"><span>What’s inside</span></div>
+          <div class="sect-h"><span>Weapon odds</span></div>
           <div class="odds" id="oddsBar"></div>
           <div class="legend" id="legend"></div>
         </div>
-        <p class="note">Every piggy you smash has a small chance to drop a chest. Iron, Banker and Golden Piggies drop chests more often. Getting an ability you already own levels it up (max 5). The day clock pauses while you open chests.</p>
+        <p class="note">Every chest holds one weapon. Each weapon has its own look and a fixed trait, and Legendary and Mythic weapons have an aura. Duplicates turn into gold. The day clock pauses while you open chests.</p>
       </div>
 
-      <div class="pbody" id="p-abil" hidden>
-        <div class="sect-h"><span>Abilities</span><span id="abilCount"></span></div>
-        <p class="note">You can only equip one ability at a time.</p>
-        <div id="abilList" style="display:flex;flex-direction:column;gap:16px"></div>
+      <div class="pbody" id="p-weapons" hidden>
+        <div class="card wcur" id="wcur">
+          <canvas id="wcurCv" width="240" height="192" aria-hidden="true"></canvas>
+          <div style="min-width:0"><div class="wrar" id="wcurRar"></div><div class="wname" id="wcurName"></div><div class="wlines" id="wcurLines"></div></div>
+        </div>
+        <div class="sect-h"><span id="wCount">Collection</span></div>
+        <p class="note">Every weapon has its own fixed trait. Getting a weapon you already own turns it into gold.</p>
+        <div id="wList" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
       <div class="pbody" id="p-pigs" hidden>
         <div class="sect-h"><span>Piggies</span><span id="kindCount"></span></div>
         <p class="note">New piggies show up as you clear days. Later piggies are tougher but pay a lot more, and every piggy has its own tricks. The yard mixes in your four newest piggies.</p>
         <div id="kindList" style="display:flex;flex-direction:column;gap:8px"></div>
-      </div>
-
-      <div class="pbody" id="p-shop" hidden>
-        <div class="sect-h"><span>General Store</span></div>
-        <div class="card shop-item">
-          <div><div class="si-name">Quick Wrist <span id="sSpdLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sSpdSub"></div></div>
-          <button class="btn" id="buySpeed" type="button"></button>
-        </div>
-        <div class="card shop-item">
-          <div><div class="si-name">Heavy Hammer <span id="sHamLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sHamSub"></div></div>
-          <button class="btn" id="buyHammer" type="button"></button>
-        </div>
-        <div class="card shop-item">
-          <div><div class="si-name">Pocket Watch <span id="sWatchLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sWatchSub"></div></div>
-          <button class="btn" id="buyWatch" type="button"></button>
-        </div>
-        <div class="card shop-item">
-          <div><div class="si-name">Lucky Horseshoe <span id="sLuckLv" style="color:var(--muted)"></span></div><div class="si-sub" id="sLuckSub"></div></div>
-          <button class="btn" id="buyLuck" type="button"></button>
-        </div>
         <div class="sect-h" style="margin-top:6px"><span>Record</span></div>
         <div class="si-sub" id="statsTxt" style="line-height:1.8"></div>
-        <div style="margin-top:auto;padding-top:10px"><button class="btn danger" id="resetBtn" type="button">Reset game</button></div>
+        <div style="padding-top:6px"><button class="btn danger" id="resetBtn" type="button">Reset game</button></div>
       </div>
     </aside>
   </main>
@@ -247,7 +286,7 @@ button{font:inherit;color:inherit}
     <div class="modal-hint" id="modalHint">Opening… tap to skip</div>
     <div class="reveal" id="reveal" hidden>
       <div class="rv-rar" id="rvRar"></div>
-      <div class="rv-ic" id="rvIc"></div>
+      <canvas id="rvCv" width="360" height="260" aria-hidden="true"></canvas>
       <div class="rv-name" id="rvName"></div>
       <div class="rv-desc" id="rvDesc"></div>
       <div class="rv-note" id="rvNote"></div>
@@ -266,8 +305,8 @@ button{font:inherit;color:inherit}
 (() => {
 'use strict';
 const $ = s => document.querySelector(s);
-const KEY = 'splinter-gulch-v3';
-const GAME = 'pigs1';
+const KEY = 'splinter-gulch-v5';
+const GAME = 'tree2';
 const TAU = Math.PI * 2;
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
@@ -284,39 +323,76 @@ function fmt(n) {
 const cash = n => '$' + fmt(n);
 const clock = t => { t = Math.max(0, Math.ceil(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
 
-/* ---------- Abilities ---------- */
+/* ---------- Rarity & weapons ---------- */
 const RAR = {
-  common:    { name: 'Common',    color: '#cfc3ac', val: 40 },
-  rare:      { name: 'Rare',      color: '#4ea8ff', val: 120 },
-  epic:      { name: 'Epic',      color: '#b977ff', val: 400 },
-  legendary: { name: 'Legendary', color: '#ffb22e', val: 1500 },
-  mythic:    { name: 'Mythic',    color: '#ff4f7b', val: 6000 },
+  common:    { name: 'Common',    color: '#cfc3ac', val: 30 },
+  rare:      { name: 'Rare',      color: '#4ea8ff', val: 90 },
+  epic:      { name: 'Epic',      color: '#b977ff', val: 300 },
+  legendary: { name: 'Legendary', color: '#ffb22e', val: 1200 },
+  mythic:    { name: 'Mythic',    color: '#ff4f7b', val: 5000 },
 };
 const RORDER = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 const ODDS = { common: 58, rare: 29.4, epic: 11, legendary: 1.2, mythic: 0.4 };
-const MAXLV = 5;
-const sc = l => 1 + 0.25 * (l - 1);
-// All ability damage is a multiple of your hammer damage (no % of health), and nothing hits the whole yard on every swing.
-const AB = [
-  { id: 'heavy', r: 'common', name: 'Heavy Head', icon: 'H', fx: l => ({ dmgMult: 1 + 0.4 * sc(l) }), desc: l => `+${pc(0.4 * sc(l))} damage per swing` },
-  { id: 'greedy', r: 'common', name: 'Greedy', icon: '$', fx: l => ({ coinMult: 1 + 0.5 * sc(l) }), desc: l => `+${pc(0.5 * sc(l))} cash` },
-  { id: 'brittle', r: 'common', name: 'Brittle Clay', icon: 'B', fx: l => ({ hpMult: 1 - Math.min(0.5, 0.15 * sc(l)) }), desc: l => `New piggies have ${pc(Math.min(0.5, 0.15 * sc(l)))} less health` },
-  { id: 'crit', r: 'rare', name: 'Critical Hit', icon: '!', fx: l => ({ critChance: Math.min(0.6, 0.2 * sc(l)), critMult: 3 }), desc: l => `${pc(Math.min(0.6, 0.2 * sc(l)))} chance to deal 3× damage` },
-  { id: 'quick', r: 'rare', name: 'Quick Draw', icon: '»', fx: l => ({ speedMult: 1 + 0.3 * sc(l) }), desc: l => `Swing ${pc(0.3 * sc(l))} faster` },
-  { id: 'prospector', r: 'rare', name: 'Prospector', icon: '◎', fx: l => ({ chestBonus: 0.06 * sc(l) }), desc: l => `+${pc(0.06 * sc(l))} chest chance on every piggy` },
-  { id: 'wide', r: 'epic', name: 'Wide Swing', icon: 'W', fx: l => ({ radiusMult: 1 + 0.5 * sc(l) }), desc: l => `Hit area ${pc(0.5 * sc(l))} bigger` },
-  { id: 'dynamite', r: 'epic', name: 'Dynamite', icon: '*', fx: l => ({ dynEvery: 5, dynMult: 4 + (l - 1) }), desc: l => `Every 5th swing explodes for ${4 + (l - 1)}× damage in a wider blast` },
-  { id: 'goldrush', r: 'epic', name: 'Gold Rush', icon: 'G', fx: l => ({ coinMult: 1 + 1.5 * sc(l) }), desc: l => `${num1(1 + 1.5 * sc(l))}× cash` },
-  { id: 'ricochet', r: 'epic', name: 'Ricochet', icon: '↯', fx: l => ({ ricochet: 0.5 * sc(l) }), desc: l => `Every swing bounces to the nearest piggy outside your hit area for ${pc(0.5 * sc(l))} damage` },
-  { id: 'thunder', r: 'legendary', name: 'Thunderstrike', icon: 'ϟ', fx: l => ({ boltEvery: 2, boltMult: 4 + (l - 1) }), desc: l => `Lightning hits a random piggy every 2 s for ${4 + (l - 1)}× damage` },
-  { id: 'lasso', r: 'legendary', name: 'Lasso', icon: 'O', fx: l => ({ pull: 1.2 * sc(l), dmgMult: 1.25 }), desc: l => `Nearby piggies get pulled toward your hammer${l > 1 ? ' harder' : ''}, +25% damage` },
-  { id: 'quake', r: 'legendary', name: 'Earthquake', icon: '≋', fx: l => ({ quakeChance: Math.min(0.4, 0.15 * sc(l)) }), desc: l => `${pc(Math.min(0.4, 0.15 * sc(l)))} chance per swing to shake the yard for 1× damage on every piggy` },
-  { id: 'chain', r: 'legendary', name: 'Chain Reaction', icon: '✹', fx: l => ({ chainMult: 1 + 0.5 * (l - 1) }), desc: l => `Every smashed piggy explodes for ${num1(1 + 0.5 * (l - 1))}× damage on piggies nearby` },
-  { id: 'midas', r: 'mythic', name: 'Midas’ Fist', icon: '♛', fx: l => ({ coinMult: 1 + 3 * sc(l), critChance: 0.3, critMult: 4, speedMult: 1 + 0.5 * sc(l) }), desc: l => `${num1(1 + 3 * sc(l))}× cash, ${pc(0.5 * sc(l))} faster swings, 30% chance for 4× damage` },
-  { id: 'ghost', r: 'mythic', name: 'Ghost Town', icon: '☠', fx: l => ({ ghostEvery: Math.max(4, 8 - (l - 1)) }), desc: l => `Every ${Math.max(4, 8 - (l - 1))} s your next swing hits every piggy in the yard` },
-  { id: 'stampede', r: 'mythic', name: 'Stampede', icon: '♞', fx: l => ({ stampedeEvery: 10, stampedeMult: 6 + 2 * (l - 1) }), desc: l => `Every 10 s a cattle stampede charges through one lane of the yard for ${6 + 2 * (l - 1)}× damage` },
+
+// Every weapon has its own fixed trait. look = which shape is drawn, pal = its colors.
+const LOOKS = { claw: 66, sledge: 82, pick: 72, pan: 50, mallet: 68 }; // handle length per shape
+const WEAPONS = [
+  { id: 'rusty',    r: null, name: 'Rusty Hammer', look: 'claw', pal: { m1: '#c4824a', m2: '#5a3018', w1: '#9a6a40', w2: '#5e3a1e', rust: true }, fx: {}, trait: 'None', text: 'No bonuses. Open chests to find better weapons.' },
+  { id: 'claw',     r: 'common', name: 'Claw Hammer', look: 'claw', fx: { dmg: 1.2 }, trait: 'Sturdy', text: '+20% damage' },
+  { id: 'pan',      r: 'common', name: 'Frying Pan', look: 'pan', fx: { radius: 1.35, dmg: .9 }, trait: 'Wide Face', text: '+35% hit radius, −10% damage' },
+  { id: 'mallet',   r: 'common', name: 'Wooden Mallet', look: 'mallet', fx: { speed: 1.15 }, trait: 'Light', text: '+15% attack speed' },
+  { id: 'pick',     r: 'rare', name: 'Pickaxe', look: 'pick', fx: { crit: .15, speed: 1.15 }, trait: 'Keen', text: '+15% crit chance, +15% attack speed' },
+  { id: 'sledge',   r: 'rare', name: 'Sledgehammer', look: 'sledge', fx: { dmg: 1.6, speed: .8, radius: 1.15 }, trait: 'Heavy', text: '+60% damage, +15% radius, −20% attack speed' },
+  { id: 'skillet',  r: 'rare', name: 'Iron Skillet', look: 'pan', pal: { pan1: '#4a5058', pan2: '#15181c', rim: '#8a939c' }, fx: { radius: 1.5, dmg: 1.1 }, trait: 'Broad', text: '+50% hit radius, +10% damage' },
+  { id: 'prospick', r: 'epic', name: 'Prospector’s Pick', look: 'pick', pal: { m1: '#ffe9a0', m2: '#b8861a' }, fx: { gold: 1.6, chest: .03, speed: 1.15 }, trait: 'Prospector', text: '+60% gold, +3% chest chance, +15% attack speed' },
+  { id: 'tempest',  r: 'epic', name: 'Tempest Mallet', look: 'mallet', pal: { w1: '#8cc0ea', w2: '#2f5f8a', band: '#e6f1fb' }, fx: { dmg: 1.3, speed: 1.3, radius: 1.1 }, trait: 'Tempest', text: '+30% damage, +30% attack speed, +10% radius' },
+  { id: 'maul',     r: 'epic', name: 'Railroad Maul', look: 'sledge', pal: { m1: '#70757b', m2: '#1c1f22', band: '#b8662e' }, fx: { dmg: 2, speed: .85, radius: 1.2 }, trait: 'Spike Driver', text: '+100% damage, +20% radius, −15% attack speed' },
+  { id: 'outlaw',   r: 'legendary', name: 'Outlaw’s Hammer', look: 'claw', pal: { m1: '#4a4a52', m2: '#111114', accent: '#d83a2a', w1: '#8a2e20', w2: '#3a120c' }, fx: { dmg: 1.8, speed: 1.4 }, trait: 'Outlaw', text: '+80% damage, +40% attack speed', aura: 'embers' },
+  { id: 'midas',    r: 'legendary', name: 'Midas Pan', look: 'pan', pal: { pan1: '#ffe98a', pan2: '#c98a12', rim: '#fff4c0', w1: '#ffe27a', w2: '#a8700f' }, fx: { gold: 2.5, dmg: 1.3, radius: 1.3 }, trait: 'Midas', text: '+150% gold, +30% damage, +30% radius', aura: 'gold' },
+  { id: 'thunder',  r: 'legendary', name: 'Thunder Maul', look: 'sledge', pal: { m1: '#cfe8ff', m2: '#3a6a9a', band: '#ffe066' }, fx: { dmg: 1.5, ability: 2 }, trait: 'Thunderborn', text: '+50% damage, abilities deal 2× damage', aura: 'storm' },
+  { id: 'sheriff',  r: 'mythic', name: 'Sheriff’s Gavel', look: 'mallet', pal: { w1: '#ffe27a', w2: '#b07a10', band: '#fff6c8', star: true }, fx: { dmg: 2.5, speed: 1.6, radius: 1.3, gold: 1.5 }, trait: 'Sheriff’s Star', text: '+150% damage, +60% attack speed, +30% radius, +50% gold', aura: 'stars' },
+  { id: 'phantom',  r: 'mythic', name: 'Phantom Pick', look: 'pick', pal: { m1: '#f3e8ff', m2: '#7a3fd0', w1: '#6a4a8a', w2: '#2a1a40', ghost: true }, fx: { dmg: 2.2, crit: .35, critDmg: 1 }, trait: 'Phantom', text: '+120% damage, +35% crit chance, +1× crit damage', aura: 'phantom' },
 ];
-const ABMAP = Object.fromEntries(AB.map(a => [a.id, a]));
+const WMAP = Object.fromEntries(WEAPONS.map(w => [w.id, w]));
+const wColor = w => w.r ? RAR[w.r].color : '#cfc3ac';
+const dupVal = w => Math.round(RAR[w.r].val * (1 + S.day / 10) * .15);
+
+/* ---------- Skill tree ---------- */
+const AB = {
+  lightning:  l => ({ every: 4 - .5 * (l - 1), mult: 3 + 1.5 * (l - 1) }),
+  cactus:     l => ({ count: 1 + Math.floor((l - 1) / 2), mult: .6 + .2 * (l - 1), every: 1.6 }),
+  dynamite:   l => ({ every: 5, mult: 3 + (l - 1) }),
+  lasso:      l => ({ pull: .8 * l }),
+  ricochet:   l => ({ mult: .4 + .15 * (l - 1) }),
+  stampede:   l => ({ every: 12, mult: 5 + 2 * (l - 1) }),
+  aftershock: l => ({ mult: .25 + .1 * (l - 1) }),
+};
+const hammerBase = l => Math.round((1 + l) * Math.pow(1.1, l));
+const SKILLS = {
+  herd:     { name: 'Bigger Herd',   max: 6,  base: 35,   g: 1.9,  req: [], eff: l => l ? `+${l} piggies in the yard at once` : 'No extra piggies' },
+  breed:    { name: 'Breeding Pens', max: 5,  base: 40,   g: 1.8,  req: [['herd', 1]], eff: l => l ? `Piggies arrive ${pc(.12 * l)} faster` : 'Normal arrival speed' },
+  fat:      { name: 'Fat Piggies',   max: 15, base: 30,   g: 1.55, req: [['herd', 1]], eff: l => `+${20 * l}% gold from piggies` },
+  longday:  { name: 'Long Days',     max: 10, base: 60,   g: 1.85, req: [['breed', 1]], eff: l => `Days last ${30 + 3 * l} s` },
+  lucky:    { name: 'Lucky Piggies', max: 10, base: 40,   g: 1.8,  req: [['fat', 1]], eff: l => `${num1(10 + 1.5 * l)}% base chest chance` },
+  shiny:    { name: 'Shiny Piggies', max: 5,  base: 1500, g: 2,    req: [['longday', 2], ['lucky', 2]], eff: l => l ? `${3 * l}% of piggies are shiny: 5× gold, 2× chests` : 'No shiny piggies' },
+  lightning:{ name: 'Lightning Rod', max: 5,  base: 60,   g: 2.2,  req: [], eff: l => { if (!l) return 'Not learned'; const a = AB.lightning(l); return `Lightning every ${num1(a.every)} s for ${num1(a.mult)}× damage`; } },
+  cactus:   { name: 'Cactus Patch',  max: 5,  base: 150,  g: 2.2,  req: [['lightning', 1]], eff: l => { if (!l) return 'Not learned'; const a = AB.cactus(l); return `${a.count} cact${a.count > 1 ? 'i' : 'us'} shoot thorns for ${num1(a.mult)}× damage`; } },
+  dynamite: { name: 'Dynamite',      max: 5,  base: 150,  g: 2.2,  req: [['lightning', 1]], eff: l => l ? `Every 5th swing explodes for ${AB.dynamite(l).mult}× damage in a wide blast` : 'Not learned' },
+  lasso:    { name: 'Lasso',         max: 5,  base: 400,  g: 2.2,  req: [['cactus', 1]], eff: l => l ? `Pulls nearby piggies toward your weapon (strength ${l})` : 'Not learned' },
+  ricochet: { name: 'Ricochet',      max: 5,  base: 400,  g: 2.2,  req: [['dynamite', 1]], eff: l => l ? `Every swing bounces to the nearest piggy for ${pc(AB.ricochet(l).mult)} damage` : 'Not learned' },
+  stampede: { name: 'Stampede',      max: 5,  base: 3000, g: 2.3,  req: [['lasso', 2], ['ricochet', 2]], eff: l => l ? `Every 12 s cattle charge through one lane for ${AB.stampede(l).mult}× damage` : 'Not learned' },
+  heavy:    { name: 'Heavier Head',  max: 40, base: 15,   g: 1.6,  req: [], eff: l => `${fmt(hammerBase(l))} base damage` },
+  quick:    { name: 'Quick Wrist',   max: 20, base: 15,   g: 1.55, req: [['heavy', 1]], eff: l => `${num2(1.2 * Math.pow(1.09, l))} base swings per second` },
+  wide:     { name: 'Wide Swing',    max: 10, base: 40,   g: 1.75, req: [['heavy', 1]], eff: l => `+${12 * l}% hit radius` },
+  sharp:    { name: 'Sharp Edge',    max: 10, base: 60,   g: 1.7,  req: [['quick', 1]], eff: l => `${4 * l}% crit chance` },
+  brutal:   { name: 'Brutal Blows',  max: 10, base: 60,   g: 1.7,  req: [['wide', 1]], eff: l => `Crits deal ${num2(2 + .25 * l)}× damage` },
+  aftershock:{ name: 'Aftershock',   max: 5,  base: 1200, g: 2.1,  req: [['sharp', 2], ['brutal', 2]], eff: l => l ? `Each swing’s shockwave hits piggies up to 2× your radius for ${pc(AB.aftershock(l).mult)} damage` : 'Not learned' },
+};
+const PATHS = {
+  ranch:  { blurb: 'Grow the herd: more piggies, faster arrivals and fatter payouts.', tiers: [['herd'], ['breed', 'fat'], ['longday', 'lucky'], ['shiny']] },
+  abil:   { blurb: 'Buy frontier abilities that fight alongside your weapon. Every ability you learn is always on.', tiers: [['lightning'], ['cactus', 'dynamite'], ['lasso', 'ricochet'], ['stampede']] },
+  hammer: { blurb: 'Train your swing: damage, attack speed, radius and crits. Works with every weapon.', tiers: [['heavy'], ['quick', 'wide'], ['sharp', 'brutal'], ['aftershock']] },
+};
 
 /* ---------- Piggies ---------- */
 const KINDS = [
@@ -331,39 +407,47 @@ const KINDS = [
   { id: 'golden', name: 'Golden Piggy', unlock: 26, w: 25, hp: 160, coin: 200, chest: 2.5, speed: .9,   pal: { a: '#fff0a0', b: '#c98a12', snout: '#ffe27a', ear: '#d99a1e' }, glow: 'rgba(255,210,80,.8)' },
 ];
 KINDS.forEach(k => { k.rad = 1.05; k.shard = [k.pal.a, k.pal.b, k.pal.snout]; });
-const TRAITS = {
+const PTRAITS = {
   clay:   [['When smashed', 'Shards fly out and hit piggies close by for 1× damage']],
   straw:  [['When hit', 'Gets spooked and dashes away']],
   nest:   [['When smashed', 'Two Clay Piggies pop out']],
   powder: [['When smashed', 'Explodes for 3× damage on piggies nearby']],
   rowdy:  [['When hit', 'Goes on a 3 s rampage, ramming other piggies for 2× damage']],
   iron:   [['Armored', 'Takes 40% less damage until below half health'], ['When smashed', '2× chest chance']],
-  miner:  [['When hit', 'Runs faster and faster'], ['When smashed', 'Spills gold nuggets for +50% cash']],
+  miner:  [['When hit', 'Runs faster and faster'], ['When smashed', 'Spills gold nuggets for +50% gold']],
   bank:   [['Always', 'Repairs 2% of its health every second'], ['When smashed', '25% chance of a 3× jackpot, 2× chest chance']],
-  golden: [['When hit', 'Drops 3× cash'], ['When smashed', 'Gold Fever: all cash ×2 for 6 seconds']],
+  golden: [['When hit', 'Drops 3× gold'], ['When smashed', 'Gold Fever: all gold ×2 for 6 seconds']],
 };
 const dayScale = () => Math.pow(1.07, S.day - 1);
-const pigHp = (k, m) => Math.max(1, Math.round(3 * k.hp * dayScale() * (m ? m.hpMult : 1)));
-const pigCash = (k, m) => Math.round(4 * k.coin * dayScale() * (m ? m.coinMult : 1));
+const pigHp = k => Math.max(1, Math.round(2 * k.hp * dayScale()));
+const pigCash = k => Math.max(1, Math.round(.8 * k.coin * dayScale()));
+// rounds up with a chance equal to the fraction, so tiny payouts still add up fairly
+const roundRand = x => Math.floor(x) + (Math.random() < x % 1 ? 1 : 0);
 const unlockedKinds = () => KINDS.filter(k => k.unlock <= S.day);
 const nextKind = () => KINDS.find(k => k.unlock > S.day);
 const quota = d => 6 + 2 * d;
+const affordable = () => Object.keys(SKILLS).filter(id => reqMet(id) && sk(id) < SKILLS[id].max && S.cash >= skCost(id)).length;
+function setShopMode(on) { document.querySelector('.app').classList.toggle('shop', on); $('#shopBar').hidden = !on; }
+const hearts = () => '♥'.repeat(S.lives) + '♡'.repeat(Math.max(0, 3 - S.lives));
 
 /* ---------- State ---------- */
-const fresh = () => ({ v: 3, game: GAME, cash: 0, day: 1, best: 1, smashed: 0, hammer: 0, speed: 0, luck: 0, watch: 0, chests: 1, abil: {}, seen: {}, equipped: null, swings: 0, opened: 0 });
+const fresh = () => ({ v: 4, game: GAME, cash: 0, day: 1, best: 1, smashed: 0, skills: {}, owned: { rusty: true }, equipped: 'rusty', newW: 0, chests: 1, lives: 3, over: false, swings: 0, opened: 0 });
 let S, feverT = 0;
 function sanitize(d) {
   const f = fresh();
   if (!d || typeof d !== 'object' || d.game !== GAME) return f;
   const out = Object.assign(f, d);
-  for (const k of ['cash', 'day', 'best', 'smashed', 'hammer', 'speed', 'luck', 'watch', 'chests', 'swings', 'opened'])
+  for (const k of ['cash', 'day', 'best', 'smashed', 'newW', 'chests', 'swings', 'opened', 'lives'])
     if (!Number.isFinite(out[k])) out[k] = fresh()[k];
   out.day = Math.max(1, out.day);
-  const abil = {}, seen = {};
-  for (const id in (out.abil || {})) if (ABMAP[id] && Number.isFinite(out.abil[id])) abil[id] = clamp(out.abil[id], 1, MAXLV);
-  for (const id in (out.seen || {})) if (abil[id]) seen[id] = out.seen[id];
-  out.abil = abil; out.seen = seen;
-  if (!out.equipped || !abil[out.equipped]) out.equipped = null;
+  out.lives = clamp(Math.round(out.lives), 0, 3); out.over = out.lives <= 0;
+  const skills = {};
+  for (const id in (out.skills || {})) if (SKILLS[id] && Number.isFinite(out.skills[id])) skills[id] = clamp(out.skills[id], 0, SKILLS[id].max);
+  out.skills = skills;
+  const owned = { rusty: true };
+  for (const id in (out.owned || {})) if (WMAP[id]) owned[id] = true;
+  out.owned = owned;
+  if (!owned[out.equipped]) out.equipped = 'rusty';
   return out;
 }
 function load() {
@@ -373,28 +457,26 @@ function load() {
 let dirty = false;
 function save() { dirty = false; try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 const markDirty = () => { dirty = true; };
+const sk = id => S.skills[id] || 0;
+const skCost = id => Math.round(SKILLS[id].base * Math.pow(SKILLS[id].g, sk(id)));
+const reqMet = id => SKILLS[id].req.every(([r, l]) => sk(r) >= l);
+const equippedWeapon = () => WMAP[S.equipped] || WMAP.rusty;
+const dayLength = () => 30 + 3 * sk('longday');
 
-const hammerDmg = l => Math.round((1 + l) * Math.pow(1.1, l));
-const hammerCost = l => Math.round(25 * Math.pow(1.6, l));
-const SPEEDMAX = 20;
-const swingRate = l => 1.2 * Math.pow(1.09, l);
-const speedCost = l => Math.round(20 * Math.pow(1.55, l));
-const WATCHMAX = 10;
-const dayLength = l => 30 + 3 * l;
-const watchCost = l => Math.round(60 * Math.pow(1.85, l));
-const LUCKMAX = 10;
-const chestBase = l => 0.1 + l * 0.015;
-const luckCost = l => Math.round(40 * Math.pow(1.8, l));
-
-function mods() {
-  const m = { dmgMult: 1, coinMult: 1, hpMult: 1, critChance: 0, critMult: 2, speedMult: 1, chestBonus: 0, radiusMult: 1, dynEvery: 0, dynMult: 1,
-    boltEvery: 0, boltMult: 0, pull: 0, quakeChance: 0, ricochet: 0, chainMult: 0, ghostEvery: 0, stampedeEvery: 0, stampedeMult: 0 };
-  const id = S.equipped;
-  if (id && S.abil[id] && ABMAP[id]) Object.assign(m, ABMAP[id].fx(S.abil[id]));
-  if (feverT > 0) m.coinMult *= 2;
-  return m;
+function stats() {
+  const w = equippedWeapon(), f = w.fx;
+  return {
+    w,
+    dmg: hammerBase(sk('heavy')) * (f.dmg || 1),
+    rate: 1.2 * Math.pow(1.09, sk('quick')) * (f.speed || 1),
+    radius: 44 * K * (1 + .12 * sk('wide')) * (f.radius || 1),
+    crit: Math.min(.9, .04 * sk('sharp') + (f.crit || 0)),
+    critMult: 2 + .25 * sk('brutal') + (f.critDmg || 0),
+    gold: (1 + .2 * sk('fat')) * (f.gold || 1) * (feverT > 0 ? 2 : 1),
+    chest: .1 + .015 * sk('lucky') + (f.chest || 0),
+    ability: f.ability || 1,
+  };
 }
-const hit1 = m => hammerDmg(S.hammer) * m.dmgMult;
 
 /* ---------- Audio ---------- */
 let ac = null, muted = false, userActed = false;
@@ -422,17 +504,18 @@ function noise(dur, vol, freq) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
   s.connect(f).connect(g).connect(a.destination); s.start(t); s.stop(t + dur);
 }
-let lastCoin = 0, lastHit = 0, lastOink = 0;
+let lastCoin = 0, lastHit = 0, lastOink = 0, lastThorn = 0;
 const sfx = {
   hit(big) { const n = performance.now(); if (n - lastHit < 60) return; lastHit = n; noise(0.07, big ? 0.32 : 0.2, big ? 2400 : 1500); tone(big ? 95 : 140, 0.09, 'triangle', 0.22, 55); },
   whiff() { noise(0.12, 0.07, 500); },
   oink() { const n = performance.now(); if (n - lastOink < 400) return; lastOink = n; tone(rand(300, 380), 0.12, 'sawtooth', 0.05, 200); },
   coin() { const n = performance.now(); if (n - lastCoin < 80) return; lastCoin = n; tone(rand(1500, 1800), 0.07, 'square', 0.022); },
+  thorn() { const n = performance.now(); if (n - lastThorn < 120) return; lastThorn = n; tone(rand(900, 1100), 0.05, 'triangle', 0.04, 1600); },
   smash() { noise(0.35, 0.4, 1600); tone(1200, 0.12, 'triangle', 0.05, 600); },
   boom() { noise(0.6, 0.55, 700); tone(60, 0.5, 'sine', 0.3, 30); },
   chest() { tone(523, 0.1, 'triangle', 0.1); tone(784, 0.14, 'triangle', 0.1, null, 0.09); tone(1046, 0.18, 'triangle', 0.08, null, 0.18); },
   rattle() { noise(0.05, 0.12, 900); },
-  reveal(r) { const k = RORDER.indexOf(r); const base = [392, 440, 523, 587, 659][k]; for (let i = 0; i <= k + 1; i++) tone(base * Math.pow(1.26, i), 0.25, 'triangle', 0.09, null, i * 0.09); },
+  reveal(r) { const k = RORDER.indexOf(r); const base = [392, 440, 523, 587, 659][Math.max(0, k)]; for (let i = 0; i <= k + 1; i++) tone(base * Math.pow(1.26, i), 0.25, 'triangle', 0.09, null, i * 0.09); },
   buy() { tone(660, 0.07, 'square', 0.05); tone(990, 0.1, 'square', 0.05, null, 0.06); },
   bolt() { noise(0.25, 0.28, 4000); tone(200, 0.2, 'sawtooth', 0.06, 60); },
   stampede() { noise(1.2, 0.35, 260); tone(55, 1, 'sawtooth', 0.06, 40); },
@@ -445,6 +528,11 @@ const sfx = {
 function rr(c, x, y, w, h, r) {
   c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r);
   c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
+}
+function star(c, x, y, r, n = 5, inner = .45, rot = -Math.PI / 2) {
+  c.beginPath();
+  for (let i = 0; i < n * 2; i++) { const a = rot + i * Math.PI / n, rr2 = i % 2 ? r * inner : r; i ? c.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2) : c.moveTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); }
+  c.closePath();
 }
 const bodyPath = (c, s) => { c.beginPath(); c.ellipse(0, 0, 1.15 * s, .82 * s, 0, 0, TAU); };
 function makeCracks() {
@@ -524,11 +612,9 @@ function drawPig(c, b, s, time) {
     c.strokeStyle = 'rgba(20,10,4,.8)'; c.lineWidth = Math.max(1.5, .06 * s); c.stroke();
   });
   c.restore();
-  bodyPath(c, s); c.strokeStyle = 'rgba(40,20,6,.45)'; c.lineWidth = Math.max(1.2, .045 * s); c.stroke();
-  // coin slot on the back
+  bodyPath(c, s); c.strokeStyle = b.shiny ? '#fff3a0' : 'rgba(40,20,6,.45)'; c.lineWidth = b.shiny ? Math.max(2, .08 * s) : Math.max(1.2, .045 * s); c.stroke();
   c.fillStyle = id === 'golden' || id === 'bank' ? '#5a3a08' : 'rgba(20,10,4,.75)';
   c.beginPath(); rr(c, -.62 * s, -.07 * s, .55 * s, .14 * s, .07 * s); c.fill();
-  // snout and face
   c.fillStyle = P.snout; c.beginPath(); c.ellipse(1.08 * s, 0, .22 * s, .3 * s, 0, 0, TAU); c.fill();
   c.strokeStyle = 'rgba(40,20,6,.35)'; c.lineWidth = .03 * s; c.stroke();
   c.fillStyle = 'rgba(40,15,5,.7)'; [-.1, .1].forEach(y => { c.beginPath(); c.ellipse(1.13 * s, y * s, .04 * s, .06 * s, 0, 0, TAU); c.fill(); });
@@ -542,7 +628,7 @@ function drawPig(c, b, s, time) {
   }
 }
 
-const CHEST = { band: '#4e2e14', trim: '#e6b54a', dark: '#5a3418' };
+const CHEST = { trim: '#e6b54a', dark: '#5a3418' };
 function drawChest(c, cx, cy, w, open = 0, glow = null, time = 0) {
   const T = CHEST, h = w * .44, lh = w * .28, x = cx - w / 2, by = cy - h * .15;
   if (open > 0 && glow) {
@@ -575,28 +661,132 @@ function drawChest(c, cx, cy, w, open = 0, glow = null, time = 0) {
   c.fillStyle = '#3a2008'; c.beginPath(); c.arc(cx, ly + h * .13, w * .022, 0, TAU); c.fill(); c.fillRect(cx - w * .01, ly + h * .13, w * .02, h * .1);
 }
 
-function drawHammer(c, x, y, lift, k, glow) {
-  const up = lift * 30 * k, sc2 = 1 + lift * .3;
-  c.save(); c.globalAlpha = .28 - lift * .12; c.fillStyle = '#2a1405';
-  c.translate(x + lift * 16 * k, y + lift * 10 * k); c.rotate(-.5); c.scale(1 - lift * .2, 1 - lift * .2);
-  c.beginPath(); rr(c, -30 * k, -14 * k, 60 * k, 28 * k, 5 * k); c.fill();
-  c.beginPath(); rr(c, -5 * k, 10 * k, 10 * k, 70 * k, 4 * k); c.fill();
+/* Weapons are drawn in local space: grip at (0,0), handle running up to the head at (0,-L). */
+function drawWeapon(c, w, k, glow) {
+  const look = w.look, p = w.pal || {}, L = LOOKS[look] * k;
+  const wood = [p.w1 || (look === 'pan' ? '#45454b' : '#c48a52'), p.w2 || (look === 'pan' ? '#1e1e22' : '#7a4a22')];
+  const hg = c.createLinearGradient(-5 * k, 0, 5 * k, 0); hg.addColorStop(0, wood[0]); hg.addColorStop(1, wood[1]);
+  c.save(); if (p.ghost) c.globalAlpha = .82;
+  c.fillStyle = hg; c.beginPath(); rr(c, -4.5 * k, -L + 6 * k, 9 * k, L + 2 * k, 4 * k); c.fill();
+  if (look !== 'pan') { c.fillStyle = p.accent || '#2c1a10'; for (let i = 0; i < 4; i++) c.fillRect(-5 * k, (-4 - i * 6) * k, 10 * k, 3 * k); }
+  c.translate(0, -L);
+  if (glow) { c.shadowColor = glow; c.shadowBlur = 18 * k; }
+  const metal = (a, b) => { const g = c.createLinearGradient(0, -16 * k, 0, 16 * k); g.addColorStop(0, a); g.addColorStop(1, b); return g; };
+  if (look === 'claw') {
+    c.fillStyle = metal(p.m1 || '#e2e8ed', p.m2 || '#4b535b');
+    c.beginPath(); rr(c, -20 * k, -10 * k, 30 * k, 20 * k, 4 * k); c.fill();
+    c.beginPath(); rr(c, -29 * k, -13 * k, 11 * k, 26 * k, 3 * k); c.fill();
+    c.beginPath();
+    c.moveTo(8 * k, -9 * k); c.quadraticCurveTo(24 * k, -12 * k, 33 * k, -20 * k); c.lineTo(29 * k, -5 * k); c.quadraticCurveTo(20 * k, -3 * k, 8 * k, -1 * k); c.closePath();
+    c.moveTo(8 * k, 9 * k); c.quadraticCurveTo(24 * k, 12 * k, 33 * k, 20 * k); c.lineTo(29 * k, 5 * k); c.quadraticCurveTo(20 * k, 3 * k, 8 * k, 1 * k); c.closePath();
+    c.fill(); c.shadowBlur = 0;
+    if (p.rust) { c.fillStyle = 'rgba(120,50,20,.6)'; [[-14, -4, 3], [2, 4, 2.5], [-25, 6, 2]].forEach(([x, y, r]) => { c.beginPath(); c.arc(x * k, y * k, r * k, 0, TAU); c.fill(); }); }
+    if (p.accent) { c.fillStyle = p.accent; c.fillRect(-12 * k, -10 * k, 4 * k, 20 * k); c.fillRect(-2 * k, -10 * k, 4 * k, 20 * k); }
+    c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-18 * k, -8 * k, 26 * k, 3 * k);
+  } else if (look === 'sledge') {
+    c.fillStyle = metal(p.m1 || '#8b949d', p.m2 || '#2c3237'); c.beginPath(); rr(c, -36 * k, -17 * k, 72 * k, 34 * k, 4 * k); c.fill(); c.shadowBlur = 0;
+    c.fillStyle = p.m2 || '#23282d'; c.fillRect(-36 * k, -17 * k, 8 * k, 34 * k); c.fillRect(28 * k, -17 * k, 8 * k, 34 * k);
+    c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(-24 * k, -14 * k, 48 * k, 4 * k);
+    c.fillStyle = p.band || '#5b6168'; c.fillRect(-12 * k, -17 * k, 4 * k, 34 * k); c.fillRect(8 * k, -17 * k, 4 * k, 34 * k);
+    if (p.band === '#ffe066') { c.strokeStyle = '#ffe066'; c.lineWidth = 2 * k; c.beginPath(); c.moveTo(-6 * k, -12 * k); c.lineTo(2 * k, -2 * k); c.lineTo(-3 * k, 1 * k); c.lineTo(5 * k, 12 * k); c.stroke(); }
+  } else if (look === 'pick') {
+    c.fillStyle = metal(p.m1 || '#cfd6dc', p.m2 || '#59626b');
+    c.beginPath(); c.moveTo(-46 * k, 12 * k); c.quadraticCurveTo(0, -26 * k, 46 * k, 12 * k); c.quadraticCurveTo(0, -10 * k, -46 * k, 12 * k); c.closePath(); c.fill();
+    c.shadowBlur = 0;
+    c.fillStyle = p.ghost ? '#c9a8ff' : '#4a3a2a'; c.beginPath(); rr(c, -7 * k, -14 * k, 14 * k, 18 * k, 3 * k); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = 2 * k; c.beginPath(); c.moveTo(-30 * k, -1 * k); c.quadraticCurveTo(0, -18 * k, 30 * k, -1 * k); c.stroke();
+  } else if (look === 'pan') {
+    c.translate(0, -22 * k);
+    c.fillStyle = p.pan2 || '#26262a'; c.beginPath(); c.arc(0, 0, 28 * k, 0, TAU); c.fill(); c.shadowBlur = 0;
+    c.strokeStyle = p.rim || '#5c5c64'; c.lineWidth = 3 * k; c.stroke();
+    const g = c.createRadialGradient(-8 * k, -8 * k, 2 * k, 0, 0, 24 * k); g.addColorStop(0, p.pan1 || '#55555d'); g.addColorStop(1, p.pan2 || '#2e2e33');
+    c.fillStyle = g; c.beginPath(); c.arc(0, 0, 22 * k, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(255,255,255,.3)'; c.lineWidth = 2.5 * k; c.beginPath(); c.arc(0, 0, 18 * k, Math.PI * 1.1, Math.PI * 1.55); c.stroke();
+  } else if (look === 'mallet') {
+    const g = c.createLinearGradient(0, -18 * k, 0, 18 * k); g.addColorStop(0, p.w1 || '#e0aa6c'); g.addColorStop(1, p.w2 || '#84542a');
+    c.fillStyle = g; c.beginPath(); rr(c, -31 * k, -18 * k, 62 * k, 36 * k, 9 * k); c.fill(); c.shadowBlur = 0;
+    c.fillStyle = p.w2 || '#6e4220'; c.beginPath(); rr(c, -31 * k, -18 * k, 9 * k, 36 * k, 5 * k); c.fill(); c.beginPath(); rr(c, 22 * k, -18 * k, 9 * k, 36 * k, 5 * k); c.fill();
+    c.fillStyle = p.band || '#3a2412'; c.fillRect(-15 * k, -18 * k, 3 * k, 36 * k); c.fillRect(12 * k, -18 * k, 3 * k, 36 * k);
+    if (p.star) { c.fillStyle = '#fff6c8'; c.strokeStyle = '#8a5a10'; c.lineWidth = 1.2 * k; star(c, 0, 0, 10 * k); c.fill(); c.stroke(); }
+    c.fillStyle = 'rgba(255,240,210,.3)'; c.fillRect(-20 * k, -14 * k, 40 * k, 4 * k);
+  }
   c.restore();
-  c.save(); c.translate(x, y - up); c.rotate(-.5); c.scale(sc2, sc2);
-  const hg = c.createLinearGradient(-5 * k, 0, 5 * k, 0); hg.addColorStop(0, '#c48a52'); hg.addColorStop(1, '#7a4a22');
-  c.fillStyle = hg; c.beginPath(); rr(c, -5 * k, 8 * k, 10 * k, 74 * k, 4 * k); c.fill();
-  c.fillStyle = '#2c1a10'; for (let i = 0; i < 4; i++) c.fillRect(-5.5 * k, (60 + i * 6) * k, 11 * k, 3 * k);
-  if (glow) { c.shadowColor = glow; c.shadowBlur = 16 * k; }
-  const mg = c.createLinearGradient(0, -14 * k, 0, 14 * k); mg.addColorStop(0, '#d4dbe1'); mg.addColorStop(1, '#4b535b');
-  c.fillStyle = mg; c.beginPath(); rr(c, -30 * k, -14 * k, 60 * k, 28 * k, 5 * k); c.fill();
-  c.shadowBlur = 0;
-  c.fillStyle = glow || '#8c959e'; c.fillRect(-30 * k, -14 * k, 7 * k, 28 * k); c.fillRect(23 * k, -14 * k, 7 * k, 28 * k);
-  c.fillStyle = 'rgba(255,255,255,.4)'; c.fillRect(-20 * k, -10 * k, 40 * k, 3 * k);
+}
+/* A weapon is pre-rendered once per size into three sprites: the lit weapon, a darker copy stacked
+   underneath for thickness, and a flat silhouette used as its ground shadow. */
+const spriteCache = new Map();
+function weaponSprite(w, k) {
+  const key = w.id + '|' + k.toFixed(3) + '|' + DPR;
+  let s = spriteCache.get(key); if (s) return s;
+  if (spriteCache.size > 40) spriteCache.clear();
+  const L = LOOKS[w.look] * k, half = 72 * k, top = L + 82 * k, bottom = 14 * k, cw = half * 2, ch = top + bottom;
+  const mk = () => { const e = document.createElement('canvas'); e.width = Math.ceil(cw * DPR); e.height = Math.ceil(ch * DPR); const g = e.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, half * DPR, top * DPR); return [e, g]; };
+  const glow = w.r && RORDER.indexOf(w.r) >= 2 ? RAR[w.r].color : null;
+  const [img, gi] = mk(); drawWeapon(gi, w, k, glow);
+  const [side, gs] = mk(); drawWeapon(gs, w, k, null); gs.setTransform(1, 0, 0, 1, 0, 0); gs.globalCompositeOperation = 'source-atop'; gs.fillStyle = 'rgba(10,5,2,.55)'; gs.fillRect(0, 0, side.width, side.height);
+  const [shadow, gh] = mk(); drawWeapon(gh, w, k, null); gh.setTransform(1, 0, 0, 1, 0, 0); gh.globalCompositeOperation = 'source-atop'; gh.fillStyle = '#2a1405'; gh.fillRect(0, 0, shadow.width, shadow.height);
+  s = { img, side, shadow, ox: half, oy: top, w: cw, h: ch };
+  spriteCache.set(key, s);
+  return s;
+}
+/* Auras for legendary and mythic weapons, drawn around the weapon head in world space. */
+function drawAura(c, aura, x, y, k, t) {
+  const R = 36 * k;
+  c.save();
+  const glow = (col, a) => { const g = c.createRadialGradient(x, y, 0, x, y, R * 1.5); g.addColorStop(0, col.replace('A', a)); g.addColorStop(1, col.replace('A', 0)); c.fillStyle = g; c.beginPath(); c.arc(x, y, R * 1.5, 0, TAU); c.fill(); };
+  if (aura === 'embers') {
+    glow('rgba(255,80,30,A)', .35);
+    for (let i = 0; i < 12; i++) {
+      const p = (t * .9 + i / 12) % 1, px = x + Math.sin(i * 12.9) * R * .9 + Math.sin(t * 3 + i) * 4 * k, py = y + R * .5 - p * R * 1.9;
+      c.globalAlpha = 1 - p; c.fillStyle = i % 3 ? '#ff7a2a' : '#ffd25a'; c.beginPath(); c.arc(px, py, (3 - 2 * p) * k, 0, TAU); c.fill();
+    }
+  } else if (aura === 'gold') {
+    glow('rgba(255,210,80,A)', .35);
+    for (let i = 0; i < 7; i++) {
+      const a = i * 2.4 + t * .7, r = R * (.6 + .5 * Math.abs(Math.sin(i * 1.7))), tw = Math.max(0, Math.sin(t * 5 + i * 1.3));
+      c.globalAlpha = tw; c.fillStyle = '#fff3b0'; star(c, x + Math.cos(a) * r, y + Math.sin(a) * r, 6 * k * tw + 1, 4, .3, t); c.fill();
+    }
+  } else if (aura === 'storm') {
+    glow('rgba(120,190,255,A)', .35);
+    c.strokeStyle = '#d8f0ff'; c.lineWidth = 2 * k; c.lineJoin = 'round';
+    for (let i = 0; i < 3; i++) {
+      if (Math.sin(t * 13 + i * 2.2) < -.2) continue;
+      const a = t * 2.5 + i * 2.1; c.beginPath();
+      for (let j = 0; j <= 5; j++) { const rr2 = R * (.4 + j * .16), aa = a + rand(-.25, .25); j ? c.lineTo(x + Math.cos(aa) * rr2, y + Math.sin(aa) * rr2) : c.moveTo(x + Math.cos(aa) * rr2, y + Math.sin(aa) * rr2); }
+      c.stroke();
+    }
+  } else if (aura === 'stars') {
+    glow('rgba(255,215,90,A)', .45);
+    for (let i = 0; i < 5; i++) {
+      const a = t * 1.6 + i * TAU / 5;
+      c.fillStyle = '#ffd84a'; c.strokeStyle = '#8a5a10'; c.lineWidth = 1.2 * k;
+      star(c, x + Math.cos(a) * R * 1.15, y + Math.sin(a) * R * .9, 7 * k, 5, .45, a); c.fill(); c.stroke();
+    }
+  } else if (aura === 'phantom') {
+    glow('rgba(190,110,255,A)', .45);
+    for (let i = 0; i < 6; i++) {
+      const a = -t * 1.8 + i * TAU / 6;
+      for (let j = 0; j < 4; j++) {
+        const aa = a + j * .14; c.globalAlpha = .55 - j * .12; c.fillStyle = j ? '#a86bff' : '#ecd9ff';
+        c.beginPath(); c.arc(x + Math.cos(aa) * R * 1.05, y + Math.sin(aa) * R * 1.05, (5 - j) * k, 0, TAU); c.fill();
+      }
+    }
+  }
+  c.restore();
+}
+function drawWeaponIcon(c, w, cw, ch, t) {
+  const k = Math.min(cw, ch) / (LOOKS[w.look] + 46), L = LOOKS[w.look] * k, a = .75;
+  const gx = cw / 2 - Math.sin(a) * L * .55, gy = ch / 2 + Math.cos(a) * L * .55;
+  const hx = gx + Math.sin(a) * L, hy = gy - Math.cos(a) * L;
+  if (w.aura) drawAura(c, w.aura, hx, hy, k, t);
+  c.save(); c.translate(gx, gy); c.rotate(a);
+  drawWeapon(c, w, k, w.r && RORDER.indexOf(w.r) >= 2 ? RAR[w.r].color : null);
   c.restore();
 }
 
 /* ---------- Scene ---------- */
 const stage = $('#stage'), cv = $('#cv'), ctx = cv.getContext('2d');
+const chipCtx = $('#chipCv').getContext('2d');
 const gcv = document.createElement('canvas'), gctx = gcv.getContext('2d');
 const tw = document.createElement('canvas'); tw.width = tw.height = 96;
 (() => { const c = tw.getContext('2d'); c.translate(48, 48); c.lineCap = 'round';
@@ -605,6 +795,15 @@ const tw = document.createElement('canvas'); tw.width = tw.height = 96;
     c.beginPath(); c.moveTo(Math.cos(a) * r1, Math.sin(a) * r1); c.quadraticCurveTo(rand(-20, 20), rand(-20, 20), Math.cos(a2) * r2, Math.sin(a2) * r2); c.stroke(); } })();
 let W = 0, H = 0, DPR = 1, K = 1;
 function srand(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+function cactusTop(c, cx, cy, r, flower) {
+  c.fillStyle = 'rgba(60,35,10,.3)'; c.beginPath(); c.arc(cx + 5 * K, cy + 6 * K, r, 0, TAU); c.fill();
+  const cg = c.createRadialGradient(cx - r * .3, cy - r * .3, 1, cx, cy, r); cg.addColorStop(0, '#86b25a'); cg.addColorStop(1, '#3f6b2a');
+  c.fillStyle = cg; c.beginPath(); c.arc(cx, cy, r, 0, TAU); c.fill();
+  c.strokeStyle = 'rgba(30,60,20,.6)'; c.lineWidth = 1.2;
+  for (let j = 0; j < 8; j++) { const a = j / 8 * TAU; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); c.stroke(); }
+  c.fillStyle = '#f3e7c1'; for (let j = 0; j < 8; j++) { const a = j / 8 * TAU + .2; c.fillRect(cx + Math.cos(a) * r * .7, cy + Math.sin(a) * r * .7, 1.5, 1.5); }
+  if (flower) { c.fillStyle = '#e66f8a'; for (let j = 0; j < 5; j++) { const a = j / 5 * TAU; c.beginPath(); c.arc(cx + Math.cos(a) * r * .18, cy + Math.sin(a) * r * .18, r * .14, 0, TAU); c.fill(); } c.fillStyle = '#ffd25a'; c.beginPath(); c.arc(cx, cy, r * .1, 0, TAU); c.fill(); }
+}
 function buildGround() {
   gcv.width = cv.width; gcv.height = cv.height;
   const c = gctx, R = srand(1337); c.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -623,16 +822,7 @@ function buildGround() {
     for (let j = 0; j < 7; j++) { const a = -Math.PI / 2 + (R() - .5) * 2.4, l = (5 + R() * 8) * K; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l * .7); c.stroke(); } }
   [[.07, .18], [.94, .3], [.1, .86], [.9, .9]].forEach(([u, v], i) => {
     const x = u * W, y = v * H, r = (16 + i * 2) * K;
-    const cactus = (cx, cy, rr2) => {
-      c.fillStyle = 'rgba(60,35,10,.3)'; c.beginPath(); c.arc(cx + 5 * K, cy + 6 * K, rr2, 0, TAU); c.fill();
-      const cg = c.createRadialGradient(cx - rr2 * .3, cy - rr2 * .3, 1, cx, cy, rr2); cg.addColorStop(0, '#86b25a'); cg.addColorStop(1, '#3f6b2a');
-      c.fillStyle = cg; c.beginPath(); c.arc(cx, cy, rr2, 0, TAU); c.fill();
-      c.strokeStyle = 'rgba(30,60,20,.6)'; c.lineWidth = 1.2;
-      for (let j = 0; j < 8; j++) { const a = j / 8 * TAU; c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2); c.stroke(); }
-      c.fillStyle = '#f3e7c1'; for (let j = 0; j < 8; j++) { const a = j / 8 * TAU + .2; c.fillRect(cx + Math.cos(a) * rr2 * .7, cy + Math.sin(a) * rr2 * .7, 1.5, 1.5); }
-    };
-    cactus(x + r * 1.3, y - r * .2, r * .55); cactus(x - r * 1.2, y + r * .3, r * .5); cactus(x, y, r);
-    if (i === 1) { c.fillStyle = '#e66f8a'; c.beginPath(); c.arc(x, y, 3.5 * K, 0, TAU); c.fill(); }
+    cactusTop(c, x + r * 1.3, y - r * .2, r * .55); cactusTop(c, x - r * 1.2, y + r * .3, r * .5); cactusTop(c, x, y, r, i === 1);
   });
   const v = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .35, W / 2, H / 2, Math.max(W, H) * .75);
   v.addColorStop(0, 'rgba(60,30,10,0)'); v.addColorStop(1, 'rgba(60,30,10,.35)');
@@ -645,19 +835,19 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   buildGround();
   for (const b of pigs) { b.s = b.kind.w * K * (b.mini ? .75 : 1); b.x = clamp(b.x, 10, W - 10); b.y = clamp(b.y, 60, H - 10); }
+  for (const c of cacti) { c.x = clamp(c.x, 40, W - 40); c.y = clamp(c.y, 110, H - 40); }
   if (!hammer.moved) { hammer.x = hammer.tx = W / 2; hammer.y = hammer.ty = H / 2; }
 }
 
-let pigs = [], parts = [], bolts = [], weeds = [];
-let hammer = { x: 0, y: 0, tx: 0, ty: 0, phase: 0, moved: false };
-let swingCount = 0, boltT = 0, ghostT = 0, ghostReady = false, spawnT = 0, weedT = 4, shakeCam = 0, time = 0;
+let pigs = [], parts = [], bolts = [], weeds = [], cacti = [], thorns = [];
+let hammer = { x: 0, y: 0, tx: 0, ty: 0, lx: 0, ly: 0, px: null, py: null, over: false, orbit: 1, phase: 0, moved: false };
+let swingCount = 0, boltT = 0, spawnT = 0, weedT = 4, shakeCam = 0, time = 0;
 let herd = null, stampT = 0;
 const HERD = [[0, 0], [-50, -35], [-50, 35], [-100, 0], [-100, -62], [-100, 62], [-150, -28], [-150, 28]];
 const HIDE = ['#6b3f1f', '#3a2414', '#a0703f', '#efe2c8'];
 const day = { running: false, t: 0, count: 0, quota: 0, earned: 0, chests: 0 };
 
-const maxPigs = () => Math.min(9, 3 + Math.floor(S.day / 2));
-const hitR = m => 44 * K * m.radiusMult;
+const maxPigs = () => Math.min(14, 3 + Math.floor(S.day / 2) + sk('herd'));
 function pickKind() {
   const pool = unlockedKinds().slice(-4), w = pool.map((k, i) => i + 1), tot = w.reduce((a, b) => a + b, 0);
   let r = Math.random() * tot;
@@ -665,18 +855,27 @@ function pickKind() {
   return pool[pool.length - 1];
 }
 function spawnPig(forceKind, fx, fy, mini) {
-  const kind = forceKind || pickKind(), s = kind.w * K * (mini ? .75 : 1), m = mods();
-  const hp = Math.max(1, Math.round(pigHp(kind, m) * (mini ? .6 : 1)));
+  const kind = forceKind || pickKind(), s = kind.w * K * (mini ? .75 : 1);
+  const hp = Math.max(1, Math.round(pigHp(kind) * (mini ? .6 : 1)));
   let x = W / 2, y = H / 2;
   if (fx != null) { x = clamp(fx, s, W - s); y = clamp(fy, 70 + s, H - s); }
   else for (let tries = 0; tries < 20; tries++) {
     x = rand(s * 1.5, W - s * 1.5); y = rand(70 + s, H - s * 1.5);
     if (pigs.every(b => Math.hypot(b.x - x, b.y - y) > (b.s + s) * 1.6) && Math.hypot(hammer.x - x, hammer.y - y) > 60 * K) break;
   }
-  const heading = rand(0, TAU);
-  pigs.push({ kind, s, x, y, heading, rot: heading, hp, maxHp: hp, shake: 0, spawn: 0, mini: !!mini, seed: rand(0, 10), cracks: makeCracks() });
+  const heading = rand(0, TAU), shiny = !mini && Math.random() < .03 * sk('shiny');
+  pigs.push({ kind, s, x, y, heading, rot: heading, hp, maxHp: hp, shake: 0, spawn: 0, mini: !!mini, shiny, seed: rand(0, 10), cracks: makeCracks() });
 }
-function addPart(p) { if (parts.length < 450) parts.push(p); }
+function syncCacti() {
+  const l = sk('cactus'), n = l ? AB.cactus(l).count : 0;
+  while (cacti.length > n) cacti.pop();
+  while (cacti.length < n) {
+    let x = W / 2, y = H / 2;
+    for (let i = 0; i < 30; i++) { x = rand(60, W - 60); y = rand(120, H - 50); if (cacti.every(c => Math.hypot(c.x - x, c.y - y) > 140 * K) && Math.hypot(x - W / 2, y - 60) > 90) break; }
+    cacti.push({ x, y, t: rand(.2, 1), pulse: 0 });
+  }
+}
+function addPart(p) { if (parts.length < 500) parts.push(p); }
 function floatText(x, y, text, color, size = 20) { addPart({ t: 'text', x, y, vx: rand(-15, 15), vy: -80, life: 0, max: .9, text, color, size }); }
 function shard(x, y, cols, k = 1) { return { t: 'shard', x, y, vx: rand(-260, 260) * k, vy: rand(-260, 260) * k, life: 0, max: rand(.5, .9), color: cols[Math.floor(Math.random() * cols.length)], size: rand(4, 11) * K * k, rot: rand(0, TAU), vr: rand(-12, 12), p: [rand(.6, 1.2), rand(.6, 1.2), rand(.6, 1.2)] }; }
 function coinP(x, y, k = 1) { return { t: 'coin', x, y, vx: rand(-160, 160) * k, vy: rand(-160, 160) * k, life: 0, max: rand(.6, 1), rot: rand(0, TAU), vr: rand(8, 16), size: rand(4, 6) * K, z: 0, vz: rand(120, 260) * k }; }
@@ -685,70 +884,70 @@ const live = b => b.hp > 0 && b.spawn > .5;
 function earn(n) { S.cash += n; if (day.running) day.earned += n; }
 
 function swing() {
-  const m = mods(); swingCount++; S.swings++;
-  const R = hitR(m), dyn = m.dynEvery && swingCount % m.dynEvery === 0, area = dyn ? R * 2.2 : R;
+  const st = stats(); swingCount++; S.swings++;
+  const R = st.radius, dynL = sk('dynamite'), dyn = dynL > 0 && swingCount % 5 === 0, area = dyn ? R * 2.2 : R;
   const hx = hammer.x, hy = hammer.y;
   const alive = pigs.filter(live);
-  const ghost = ghostReady && alive.length > 0;
-  const targets = ghost ? alive : alive.filter(b => Math.hypot(b.x - hx, b.y - hy) < area + b.s * b.kind.rad * .8);
+  const targets = alive.filter(b => Math.hypot(b.x - hx, b.y - hy) < area + b.s * b.kind.rad * .8);
   dust(hx, hy, R, dyn ? 18 : 6);
-  addPart({ t: 'ring', x: hx, y: hy, life: 0, max: .3, r: area, color: dyn ? '#ff8a3c' : 'rgba(90,50,20,.6)' });
+  addPart({ t: 'ring', x: hx, y: hy, life: 0, max: .3, r: area, color: dyn ? '#ff8a3c' : st.w.aura ? RAR[st.w.r].color : 'rgba(90,50,20,.6)' });
   if (dyn) { sfx.boom(); shakeCam = .5; for (let i = 0; i < 16; i++) addPart({ t: 'spark', x: hx, y: hy, vx: rand(-420, 420), vy: rand(-420, 420), life: 0, max: rand(.3, .6), color: i % 2 ? '#ffcf4a' : '#ff6a2a' }); floatText(hx, hy - 30 * K, 'KABOOM!', '#ff8a3c', 26); }
-  if (ghost) { ghostReady = false; ghostT = 0; floatText(hx, hy - 40 * K, 'GHOST TOWN!', '#e8e0ff', 24); for (const b of targets) addPart({ t: 'ring', x: b.x, y: b.y, life: 0, max: .35, r: b.s * 1.4, color: 'rgba(230,220,255,.85)' }); }
   if (!targets.length && !dyn) sfx.whiff();
   for (const b of targets) {
-    let dmg = hit1(m), tag = null;
-    if (Math.random() < m.critChance) { dmg *= m.critMult; tag = 'crit'; }
-    if (dyn) { dmg *= m.dynMult; tag = 'dyn'; }
+    let dmg = st.dmg, tag = null;
+    if (Math.random() < st.crit) { dmg *= st.critMult; tag = 'crit'; }
+    if (dyn) { dmg *= AB.dynamite(dynL).mult * st.ability; tag = 'dyn'; }
     damagePig(b, dmg, tag);
   }
-  if (m.ricochet) {
+  const ricL = sk('ricochet');
+  if (ricL) {
     const rest = pigs.filter(b => live(b) && !targets.includes(b));
     if (rest.length) {
       const d = b => Math.hypot(b.x - hx, b.y - hy), n = rest.reduce((a, b) => d(b) < d(a) ? b : a);
       addPart({ t: 'line', x: hx, y: hy, x2: n.x, y2: n.y, vx: 0, vy: 0, life: 0, max: .2 });
-      damagePig(n, hit1(m) * m.ricochet, 'ric');
+      damagePig(n, st.dmg * AB.ricochet(ricL).mult * st.ability, 'ric');
     }
   }
-  if (m.quakeChance && Math.random() < m.quakeChance) {
-    shakeCam = Math.max(shakeCam, .3); floatText(hx, hy - 50 * K, 'QUAKE!', '#e8d3a8', 22);
-    for (const b of pigs) if (live(b)) damagePig(b, hit1(m), 'quake', true);
+  const aftL = sk('aftershock');
+  if (aftL) {
+    addPart({ t: 'ring', x: hx, y: hy, life: 0, max: .4, r: R * 2, color: 'rgba(240,220,170,.7)' });
+    for (const b of pigs) if (live(b) && !targets.includes(b) && Math.hypot(b.x - hx, b.y - hy) < R * 2 + b.s) damagePig(b, st.dmg * AB.aftershock(aftL).mult, 'after', true);
   }
   pigs = pigs.filter(b => b.hp > 0);
   markDirty();
 }
-function damagePig(b, dmg, tag, quiet) {
+function damagePig(b, dmg, tag, quiet, cf = 1) {
   if (b.hp <= 0) return;
-  const m = mods(), id = b.kind.id;
+  const st = stats(), id = b.kind.id;
   if (id === 'iron' && b.hp > b.maxHp / 2) dmg *= .6;
   b.hp -= dmg; b.shake = Math.min(1.4, b.shake + (quiet ? .3 : tag ? 1.2 : .8));
   if (id === 'straw' && !quiet) { b.dash = 1; b.heading = Math.atan2(b.y - hammer.y, b.x - hammer.x) + rand(-.4, .4); }
   if (id === 'miner' && !quiet) b.boost = Math.min(2.6, (b.boost || 1) + .12);
   if (id === 'rowdy') { if (!(b.rage > 0)) floatText(b.x, b.y - b.s * 1.6, 'RAMPAGE!', '#ff6a4a', 18); b.rage = 3; b.aimT = 0; }
-  const coins = Math.max(1, Math.round(.35 * b.kind.coin * dayScale() * m.coinMult * (quiet ? .3 : 1) * (id === 'golden' ? 3 : 1)));
-  earn(coins);
-  const col = tag === 'crit' ? RAR.rare.color : tag === 'dyn' ? '#ff8a3c' : tag === 'bolt' ? '#fff6b0' : tag === 'quake' ? '#e8d3a8' : tag === 'ram' ? '#ff6a4a' : '#fff5e0';
-  if (!quiet || Math.random() < .3) floatText(b.x + rand(-10, 10), b.y - b.s, (tag === 'crit' ? 'CRIT ' : '') + '-' + fmt(Math.ceil(dmg)), col, tag && tag !== 'quake' ? 24 : 18);
+  const coins = roundRand(.04 * b.kind.coin * dayScale() * st.gold * cf * (id === 'golden' ? 3 : 1) * (b.shiny ? 5 : 1));
+  if (coins > 0) earn(coins);
+  const col = tag === 'crit' ? '#7fc4ff' : tag === 'dyn' ? '#ff8a3c' : tag === 'bolt' ? '#fff6b0' : tag === 'thorn' ? '#cfe89a' : tag === 'ram' ? '#ff6a4a' : '#fff5e0';
+  if (!quiet || Math.random() < .35) floatText(b.x + rand(-10, 10), b.y - b.s, (tag === 'crit' ? 'CRIT ' : '') + '-' + fmt(Math.ceil(dmg)), col, tag && !quiet ? 24 : 18);
   if (!quiet) {
     for (let i = 0; i < 3; i++) addPart(shard(b.x, b.y, b.kind.shard, .7));
-    addPart(coinP(b.x, b.y, .8)); sfx.hit(!!tag); sfx.coin(); if (Math.random() < .3) sfx.oink();
+    if (coins > 0) { addPart(coinP(b.x, b.y, .8)); sfx.coin(); } sfx.hit(!!tag); if (Math.random() < .3) sfx.oink();
   }
   if (b.hp <= 0) smash(b);
 }
 function smash(b) {
-  const m = mods();
+  const st = stats();
   b.hp = 0;
   for (let i = 0; i < 26; i++) addPart(shard(b.x + rand(-1, 1) * b.s, b.y + rand(-1, 1) * b.s, b.kind.shard, 1.2));
-  for (let i = 0; i < 10; i++) addPart(coinP(b.x, b.y, 1.2));
+  for (let i = 0; i < (b.shiny ? 24 : 10); i++) addPart(coinP(b.x, b.y, 1.2));
   dust(b.x, b.y, b.s * 1.5, 10);
-  let bonus = Math.round(pigCash(b.kind, m) * (b.mini ? .5 : 1)), label = '+';
+  let bonus = Math.round(pigCash(b.kind) * st.gold * (b.mini ? .5 : 1) * (b.shiny ? 5 : 1)), label = b.shiny ? 'SHINY +' : '+';
   if (b.kind.id === 'miner') { bonus = Math.round(bonus * 1.5); for (let i = 0; i < 10; i++) addPart(coinP(b.x, b.y, 1.5)); }
   if (b.kind.id === 'bank' && Math.random() < .25) { bonus *= 3; label = 'JACKPOT +'; }
   earn(bonus); S.smashed++;
   if (day.running) day.count++;
   floatText(b.x, b.y - b.s * .3, label + cash(bonus), '#ffd257', label === '+' ? 22 : 28);
   sfx.smash();
-  const chance = Math.min(1, (chestBase(S.luck) + m.chestBonus) * b.kind.chest);
+  const chance = Math.min(1, st.chest * b.kind.chest * (b.shiny ? 2 : 1));
   if (Math.random() < chance) {
     S.chests++; if (day.running) day.chests++;
     addPart({ t: 'chest', x: b.x, y: b.y, life: 0, max: 1.5, z: 0, vz: 260 });
@@ -756,7 +955,7 @@ function smash(b) {
     setTimeout(sfx.chest, 100);
     renderChest();
   }
-  deathTraits(b, m);
+  deathTraits(b, st);
   updateHUD();
 }
 function explode(x, y, r, dmg, color) {
@@ -765,52 +964,66 @@ function explode(x, y, r, dmg, color) {
   dust(x, y, r * .6, 10); sfx.boom(); shakeCam = Math.max(shakeCam, .35);
   for (const o of pigs) if (live(o) && Math.hypot(o.x - x, o.y - y) < r + o.s) damagePig(o, dmg, 'dyn');
 }
-function deathTraits(b, m) {
+function deathTraits(b, st) {
   const id = b.kind.id;
   if (id === 'clay') {
     for (let i = 0; i < 8; i++) addPart(shard(b.x, b.y, b.kind.shard, 1.6));
-    for (const o of pigs) if (o !== b && live(o) && Math.hypot(o.x - b.x, o.y - b.y) < 100 * K) damagePig(o, hit1(m), 'shard');
+    for (const o of pigs) if (o !== b && live(o) && Math.hypot(o.x - b.x, o.y - b.y) < 100 * K) damagePig(o, st.dmg, 'shard');
   }
   if (id === 'nest' && day.running) for (let i = 0; i < 2; i++) spawnPig(KINDS[0], b.x + (i ? 1 : -1) * b.s * .8, b.y, true);
-  if (id === 'powder') explode(b.x, b.y, 120 * K, hit1(m) * 3, '#ff8a3c');
-  if (id === 'golden') { feverT = 6; toast('Gold Fever! All cash ×2 for 6 seconds', '#ffd257'); }
-  if (m.chainMult) explode(b.x, b.y, 100 * K, hit1(m) * m.chainMult, RAR.legendary.color);
+  if (id === 'powder') explode(b.x, b.y, 190 * K, st.dmg * 3, '#ff8a3c');
+  if (id === 'golden') { feverT = 6; toast('Gold Fever! All gold ×2 for 6 seconds', '#ffd257'); }
 }
 
 /* ---------- Days ---------- */
 function startDay() {
   if (day.running) return;
   userActed = true;
-  day.running = true; day.t = dayLength(S.watch); day.count = 0; day.quota = quota(S.day); day.earned = 0; day.chests = 0;
-  pigs = []; spawnT = 0; boltT = 0; ghostT = 0; ghostReady = false; stampT = 0; herd = null; feverT = 0; swingCount = 0;
-  $('#dayOver').hidden = true; sfx.start(); updateHUD();
-}
+  if (S.over) { newRun(); return; }
+  day.running = true; day.t = dayLength(); day.count = 0; day.quota = quota(S.day); day.earned = 0; day.chests = 0;
+  pigs = []; thorns = []; spawnT = 0; boltT = 0; stampT = 0; herd = null; feverT = 0; swingCount = 0;
+  cacti = []; syncCacti();
+  if (hammer.px != null) { hammer.tx = hammer.px; hammer.ty = hammer.py; hammer.moved = true; }
+  stage.classList.toggle('mouse', hammer.over);
+  $('#dayOver').hidden = true; setShopMode(false); sfx.start(); renderTree(); updateHUD();}
 function endDay() {
-  day.running = false; hammer.phase = 0; herd = null; feverT = 0;
-  for (const b of pigs) { dust(b.x, b.y, b.s * 1.4, 6); }
+  day.running = false; hammer.phase = 0; herd = null; feverT = 0; thorns = [];
+  setShopMode(true); setTab('skills');
+  stage.classList.remove('mouse');
+  for (const b of pigs) dust(b.x, b.y, b.s * 1.4, 6);
   pigs = [];
   const won = day.count >= day.quota, n = S.day;
-  let unlockLine = '';
+  const stats3 = `<p>Piggies smashed: <b>${day.count} / ${day.quota}</b></p><p>Gold earned: <b>${cash(day.earned)}</b></p><p>Chests found: <b>${day.chests}</b></p>`;
   if (won) {
     S.day++; S.best = Math.max(S.best, S.day);
     const nk = KINDS.find(k => k.unlock === S.day);
-    if (nk) unlockLine = `<div class="unlock">New piggy tomorrow: ${nk.name}!</div>`;
-    sfx.win();
-  } else sfx.lose();
-  save();
-  showDayCard(won ? `Day ${n} cleared!` : `Day ${n} not cleared`, won,
-    `<p>Piggies smashed: <b>${day.count} / ${day.quota}</b></p><p>Cash earned: <b>${cash(day.earned)}</b></p><p>Chests found: <b>${day.chests}</b></p>` +
-    (won ? unlockLine : `<p>Buy upgrades in the Store, then try day ${n} again.</p>`));
+    sfx.win(); save();
+    showDayCard(`Day ${n} cleared!`, true, stats3 + (nk ? `<div class="unlock">New piggy tomorrow: ${nk.name}!</div>` : ''));
+  } else {
+    S.lives = Math.max(0, S.lives - 1); sfx.lose();
+    if (S.lives <= 0) {
+      S.over = true; save();
+      showDayCard('Out of lives', false, stats3 + `<p>Your run ended on day <b>${n}</b>.</p><p>You keep your weapons and unopened chests. Gold, skills and days start over.</p>`);
+      $('#startDay').textContent = 'Start a new run';
+    } else {
+      save();
+      showDayCard(`Day ${n} not cleared`, false, stats3 + `<p>You lost a life: <b style="color:#e2533f">${hearts()}</b></p><p>Spend gold in the skill tree, then try day ${n} again.</p>`);
+    }
+  }
   renderAll();
 }
-function showDayCard(title, won, body) {
+function newRun() {
+  S = Object.assign(fresh(), { owned: S.owned, equipped: S.equipped, chests: S.chests, best: S.best, smashed: S.smashed, swings: S.swings, opened: S.opened });
+  save(); renderAll(); readyCard(); toast('New run started. Good luck out there!');
+}function showDayCard(title, won, body) {
   const t = $('#doTitle'); t.textContent = title; t.classList.toggle('fail', won === false);
   $('#doBody').innerHTML = body;
-  $('#startDay').textContent = `Start day ${S.day}`;
+  $('#startDay').textContent = S.over ? 'Start a new run' : `Start day ${S.day}`;
   $('#dayOver').hidden = false;
 }
 function readyCard() {
-  showDayCard(`Day ${S.day}`, null, `<p>Smash <b>${quota(S.day)} piggies</b> in <b>${dayLength(S.watch)} seconds</b> to reach the next day.</p><p>Move your hammer over the piggies. It swings on its own.</p>`);
+  if (S.over) { showDayCard('Out of lives', false, `<p>Your last run is over.</p><p>You keep your weapons and unopened chests. Gold, skills and days start over.</p>`); return; }
+  showDayCard(`Day ${S.day}`, null, `<p>Smash <b>${quota(S.day)} piggies</b> in <b>${dayLength()} seconds</b> to reach the next day.</p><p>Lives: <b style="color:#e2533f">${hearts()}</b> · failing a day costs one.</p><p>Move your weapon over the piggies. It swings on its own.</p>`);
 }
 $('#startDay').addEventListener('click', startDay);
 
@@ -822,35 +1035,62 @@ function frame(now) {
   if (W && H) { try { if (!M) { time += dt; update(dt); } render(); } catch (e) { console.error(e); } }
 }
 function update(dt) {
-  const m = mods();
+  const st = stats();
   hammer.x += (hammer.tx - hammer.x) * Math.min(1, dt * 16);
   hammer.y += (hammer.ty - hammer.y) * Math.min(1, dt * 16);
+  {
+    // The handle trails behind the movement; when still, it slowly circles the cursor.
+    const mvx = (hammer.x - hammer.lx) / dt, mvy = (hammer.y - hammer.ly) / dt, spd = Math.hypot(mvx, mvy);
+    hammer.lx = hammer.x; hammer.ly = hammer.y;
+    if (spd > 60) { const want = Math.atan2(-mvy, -mvx), diff = Math.atan2(Math.sin(want - hammer.orbit), Math.cos(want - hammer.orbit)); hammer.orbit += diff * Math.min(1, dt * 4); }
+    else hammer.orbit += dt * .6;
+  }
   if (day.running) {
     day.t -= dt;
-    hammer.phase += dt * swingRate(S.speed) * m.speedMult;
+    hammer.phase += dt * st.rate;
     let guard = 0;
     while (hammer.phase >= 1 && guard++ < 8) { hammer.phase -= 1; swing(); }
-    if (pigs.length < maxPigs()) { spawnT -= dt; if (spawnT <= 0) { spawnPig(); spawnT = .6; } }
-    if (m.ghostEvery) { ghostT += dt; if (ghostT >= m.ghostEvery) ghostReady = true; } else { ghostT = 0; ghostReady = false; }
-    if (m.boltEvery) {
+    if (pigs.length < maxPigs()) { spawnT -= dt; if (spawnT <= 0) { spawnPig(); spawnT = .6 * (1 - .12 * sk('breed')); } }
+    const lightL = sk('lightning');
+    if (lightL) {
       boltT += dt;
       const alive = pigs.filter(b => b.hp > 0 && b.spawn >= 1);
-      if (boltT >= m.boltEvery && alive.length) {
+      if (boltT >= AB.lightning(lightL).every && alive.length) {
         boltT = 0; const b = alive[Math.floor(Math.random() * alive.length)];
-        makeBolt(b.x, b.y); damagePig(b, hit1(m) * m.boltMult, 'bolt');
+        makeBolt(b.x, b.y); damagePig(b, st.dmg * AB.lightning(lightL).mult * st.ability, 'bolt');
       }
-    } else boltT = 0;
-    if (m.stampedeEvery) {
+    }
+    const cacL = sk('cactus');
+    if (cacL) {
+      syncCacti();
+      const a = AB.cactus(cacL);
+      for (const c of cacti) {
+        c.t -= dt; c.pulse = Math.max(0, c.pulse - dt * 4);
+        if (c.t > 0) continue;
+        const inRange = pigs.filter(b => live(b) && Math.hypot(b.x - c.x, b.y - c.y) < 250 * K);
+        if (!inRange.length) { c.t = .2; continue; }
+        const d = b => Math.hypot(b.x - c.x, b.y - c.y), tgt = inRange.reduce((p, b) => d(b) < d(p) ? b : p), ang = Math.atan2(tgt.y - c.y, tgt.x - c.x);
+        for (const off of [-.18, 0, .18]) thorns.push({ x: c.x, y: c.y, vx: Math.cos(ang + off) * 520 * K, vy: Math.sin(ang + off) * 520 * K, life: 0, max: .6, dmg: st.dmg * a.mult * st.ability });
+        c.t = a.every; c.pulse = 1; sfx.thorn();
+      }
+    }
+    const stL = sk('stampede');
+    if (stL) {
       stampT += dt;
-      if (stampT >= m.stampedeEvery && !herd) {
+      if (stampT >= AB.stampede(stL).every && !herd) {
         stampT = 0; const dir = Math.random() < .5 ? 1 : -1;
         herd = { x: dir > 0 ? -60 : W + 60, y: rand(130, Math.max(140, H - 50)), dir, hit: new Set() };
         sfx.stampede();
       }
-    } else stampT = 0;
+    }
     if (day.t <= 0) { endDay(); return; }
   }
-  const lvlSpeed = Math.min(1.8, 1 + (S.day - 1) * .03);
+  for (const t of thorns) {
+    t.life += dt; t.x += t.vx * dt; t.y += t.vy * dt;
+    for (const b of pigs) if (t.life < t.max && live(b) && Math.hypot(b.x - t.x, b.y - t.y) < b.s * 1.1) { damagePig(b, t.dmg, 'thorn', true, .5); t.life = t.max; addPart(shard(t.x, t.y, ['#cfe89a', '#86b25a'], .4)); }
+  }
+  thorns = thorns.filter(t => t.life < t.max);
+  const daySpeed = Math.min(1.8, 1 + (S.day - 1) * .03), lassoL = sk('lasso');
   for (const b of pigs) {
     b.spawn = Math.min(1, b.spawn + dt / .35);
     b.shake = Math.max(0, b.shake - dt * 5);
@@ -866,9 +1106,9 @@ function update(dt) {
       }
       if (Math.random() < .3) addPart({ t: 'dust', x: b.x, y: b.y, vx: 0, vy: 0, life: 0, max: .4, size: 6 * K });
     } else b.heading += rand(-1, 1) * dt * 1.6;
-    const sp = 46 * K * b.kind.speed * lvlSpeed * (b.boost || 1) * (b.rage > 0 ? 3.5 : b.dash > 0 ? 3.2 : b.shake > .2 ? .4 : 1);
+    const sp = 46 * K * b.kind.speed * daySpeed * (b.boost || 1) * (b.rage > 0 ? 3.5 : b.dash > 0 ? 3.2 : b.shake > .2 ? .4 : 1);
     b.x += Math.cos(b.heading) * sp * dt; b.y += Math.sin(b.heading) * sp * dt;
-    if (m.pull) { const dx = hammer.x - b.x, dy = hammer.y - b.y, d = Math.hypot(dx, dy); if (d > 8 && d < 300 * K) { const p = Math.min(d, 55 * K * m.pull * dt * (1 - d / (300 * K) + .3)); b.x += dx / d * p; b.y += dy / d * p; } }
+    if (lassoL) { const pull = AB.lasso(lassoL).pull, dx = hammer.x - b.x, dy = hammer.y - b.y, d = Math.hypot(dx, dy); if (d > 8 && d < 300 * K) { const p = Math.min(d, 55 * K * pull * dt * (1 - d / (300 * K) + .3)); b.x += dx / d * p; b.y += dy / d * p; } }
     let diff = b.heading - b.rot; diff = Math.atan2(Math.sin(diff), Math.cos(diff)); b.rot += diff * Math.min(1, dt * 7);
     const r = b.s * b.kind.rad, top = 64;
     if (b.x < r) { b.x = r; b.heading = Math.PI - b.heading; }
@@ -881,17 +1121,18 @@ function update(dt) {
     if (d < min) {
       const push = (min - d) / 2; a.x -= dx / d * push; a.y -= dy / d * push; b.x += dx / d * push; b.y += dy / d * push;
       if (day.running) {
-        if (a.rage > 0 && !(b.ramCd > 0) && live(b)) { b.ramCd = .5; b.heading = Math.atan2(dy, dx); damagePig(b, hit1(m) * 2, 'ram'); }
-        if (b.rage > 0 && !(a.ramCd > 0) && live(a)) { a.ramCd = .5; a.heading = Math.atan2(-dy, -dx); damagePig(a, hit1(m) * 2, 'ram'); }
+        if (a.rage > 0 && !(b.ramCd > 0) && live(b)) { b.ramCd = .5; b.heading = Math.atan2(dy, dx); damagePig(b, st.dmg * 2, 'ram'); }
+        if (b.rage > 0 && !(a.ramCd > 0) && live(a)) { a.ramCd = .5; a.heading = Math.atan2(-dy, -dx); damagePig(a, st.dmg * 2, 'ram'); }
       }
     }
   }
   if (herd) {
     herd.x += herd.dir * 620 * K * dt; shakeCam = Math.max(shakeCam, .12);
     if (Math.random() < .7) dust(herd.x - herd.dir * 120 * K, herd.y + rand(-60, 60) * K, 30 * K, 2);
+    const mult = AB.stampede(Math.max(1, sk('stampede'))).mult;
     for (const b of pigs) {
       if (!live(b) || herd.hit.has(b)) continue;
-      if (Math.abs(b.y - herd.y) < 75 * K + b.s && Math.abs(b.x - (herd.x - herd.dir * 75 * K)) < 90 * K) { herd.hit.add(b); damagePig(b, hit1(m) * m.stampedeMult, 'dyn'); }
+      if (Math.abs(b.y - herd.y) < 75 * K + b.s && Math.abs(b.x - (herd.x - herd.dir * 75 * K)) < 90 * K) { herd.hit.add(b); damagePig(b, st.dmg * mult * st.ability, 'dyn'); }
     }
     if (herd.x < -260 || herd.x > W + 260) herd = null;
   }
@@ -922,29 +1163,34 @@ function render() {
   const sx = shakeCam ? rand(-1, 1) * shakeCam * 10 : 0, sy = shakeCam ? rand(-1, 1) * shakeCam * 10 : 0;
   c.drawImage(gcv, 0, 0);
   c.setTransform(DPR, 0, 0, DPR, sx * DPR, sy * DPR);
-  const m = mods(), R = hitR(m);
+  const st = stats(), R = st.radius;
   for (const w of weeds) {
     const hop = Math.abs(Math.sin(w.hop)) * 14 * K;
     c.globalAlpha = .25; c.fillStyle = '#4a2c10'; c.beginPath(); c.ellipse(w.x, w.y + 4, 34 * w.size, 12 * w.size, 0, 0, TAU); c.fill(); c.globalAlpha = 1;
     c.save(); c.translate(w.x, w.y - hop); c.rotate(w.rot); c.drawImage(tw, -48 * w.size, -48 * w.size, 96 * w.size, 96 * w.size); c.restore();
   }
+  for (const ct of cacti) { const r = 17 * K * (1 + ct.pulse * .12); cactusTop(c, ct.x, ct.y, r, true); cactusTop(c, ct.x + r * 1.2, ct.y - r * .3, r * .5); cactusTop(c, ct.x - r * 1.1, ct.y + r * .35, r * .45); }
   c.save(); c.setLineDash([6 * K, 6 * K]); c.lineDashOffset = -time * 20;
-  c.strokeStyle = ghostReady ? RAR.mythic.color : 'rgba(80,40,10,.45)'; c.lineWidth = ghostReady ? 3 : 2; c.fillStyle = ghostReady ? 'rgba(255,79,123,.1)' : 'rgba(90,50,15,.08)';
+  const ringCol = st.w.aura ? RAR[st.w.r].color : null;
+  c.strokeStyle = ringCol || 'rgba(80,40,10,.45)'; c.lineWidth = ringCol ? 2.5 : 2; c.fillStyle = 'rgba(90,50,15,.08)';
   c.beginPath(); c.arc(hammer.x, hammer.y, R, 0, TAU); c.fill(); c.stroke(); c.restore();
   for (const b of pigs) {
     const sp = b.spawn < 1 ? 1 + 2.2 * Math.pow(b.spawn - 1, 3) + 1.2 * Math.pow(b.spawn - 1, 2) : 1;
     c.fillStyle = 'rgba(60,30,8,.3)'; c.beginPath(); c.ellipse(b.x + 4 * K, b.y + 6 * K, b.s * 1.2 * sp, b.s * .95 * sp, 0, 0, TAU); c.fill();
     c.save(); c.translate(b.x + Math.sin(time * 70) * b.shake * 3, b.y); c.rotate(b.rot);
     c.scale(sp * (1 - .08 * b.shake), sp * (1 - .08 * b.shake));
-    if (b.kind.glow) { c.shadowColor = b.kind.glow; c.shadowBlur = 12 + Math.sin(time * 4) * 5; }
+    if (b.kind.glow || b.shiny) { c.shadowColor = b.shiny ? 'rgba(255,240,150,.95)' : b.kind.glow; c.shadowBlur = 12 + Math.sin(time * 4) * 5; }
     drawPig(c, b, b.s, time);
     c.restore();
+    if (b.shiny) { for (let i = 0; i < 3; i++) { const a = time * 2 + i * 2.1, tw2 = Math.max(0, Math.sin(time * 6 + i * 2)); c.globalAlpha = tw2; c.fillStyle = '#fffbe0'; star(c, b.x + Math.cos(a) * b.s * 1.4, b.y + Math.sin(a) * b.s * 1.1, 5 * K * tw2 + 1, 4, .3); c.fill(); } c.globalAlpha = 1; }
     if (b.hp < b.maxHp) {
       const w = b.s * 2, y = b.y - b.s * 1.3 - 10 * K;
       c.fillStyle = 'rgba(30,15,5,.7)'; c.fillRect(b.x - w / 2 - 1, y - 1, w + 2, 6);
       c.fillStyle = '#c2452d'; c.fillRect(b.x - w / 2, y, w * clamp(b.hp / b.maxHp, 0, 1), 4);
     }
   }
+  c.strokeStyle = '#eef6cf'; c.lineWidth = 2.2; c.lineCap = 'round';
+  for (const t of thorns) { const sp = Math.hypot(t.vx, t.vy) || 1; c.beginPath(); c.moveTo(t.x, t.y); c.lineTo(t.x - t.vx / sp * 9 * K, t.y - t.vy / sp * 9 * K); c.stroke(); }
   for (const p of parts) {
     const a = 1 - p.life / p.max;
     c.globalAlpha = Math.min(1, a * 2);
@@ -998,35 +1244,50 @@ function render() {
     const txt = `GOLD FEVER ×2 · ${Math.ceil(feverT)}s`;
     c.strokeStyle = 'rgba(40,20,5,.85)'; c.strokeText(txt, W / 2, 132); c.fillStyle = '#ffd257'; c.fillText(txt, W / 2, 132);
   }
-  const ph = hammer.phase, lift = ph < .78 ? Math.sin(ph / .78 * Math.PI / 2) : 1 - (ph - .78) / .22;
-  const id = S.equipped, glow = id && S.abil[id] && ABMAP[id] ? RAR[ABMAP[id].r].color : null;
-  drawHammer(c, hammer.x, hammer.y, clamp(lift, 0, 1), K, glow);
+  // Weapon: the grip orbits around the cursor; the head always lands on it. It winds up slowly, then slams down fast.
+  const ph = day.running ? hammer.phase : 0, lift = clamp(ph < .75 ? Math.sin(ph / .75 * Math.PI / 2) : 1 - (ph - .75) / .25, 0, 1);
+  const w = st.w, k = K * 1.05, L = LOOKS[w.look] * k, th = hammer.orbit, s2 = 1 + lift * .22;
+  const phi0 = th - Math.PI / 2, phi = phi0 + lift * 1.05;
+  const px = hammer.x + Math.cos(th) * L, py = hammer.y + Math.sin(th) * L;
+  const hx = px + Math.sin(phi) * L * s2, hy = py - Math.cos(phi) * L * s2;
+  const spr = weaponSprite(w, k), drawSpr = (img, x, y, sc, rot) => { c.save(); c.translate(x, y); c.scale(sc, sc); c.rotate(rot); c.drawImage(img, -spr.ox, -spr.oy, spr.w, spr.h); c.restore(); };
+  // ground shadow drifts away and softens as the weapon rises
+  c.globalAlpha = .26 - lift * .1; drawSpr(spr.shadow, px + (6 + lift * 22) * k, py + (8 + lift * 30) * k, 1 - lift * .08, phi0 + lift * .5); c.globalAlpha = 1;
+  if (w.aura) drawAura(c, w.aura, hx, hy, k, time);
+  // stacked darker layers give the weapon thickness, deeper when it is closer to the camera
+  const depth = (2.2 + lift * 1.6) * k;
+  for (let i = 4; i >= 1; i--) drawSpr(spr.side, px, py + i * depth, s2, phi);
+  drawSpr(spr.img, px, py, s2, phi);  // weapon chip icon (animated aura)
+  chipCtx.setTransform(2, 0, 0, 2, 0, 0); chipCtx.clearRect(0, 0, 48, 48); drawWeaponIcon(chipCtx, w, 48, 48, time);
 }
 
 /* ---------- Input ---------- */
 function stagePos(e) { const r = stage.getBoundingClientRect(); return { x: clamp(e.clientX - r.left, 0, r.width), y: clamp(e.clientY - r.top, 0, r.height) }; }
-function aim(e) { const p = stagePos(e); hammer.tx = p.x; hammer.ty = e.pointerType === 'mouse' ? p.y : p.y - 40 * K; hammer.moved = true; }
-stage.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { aim(e); stage.classList.add('mouse'); } else if (e.buttons) aim(e); });
+function aim(e) {
+  const p = stagePos(e); hammer.px = p.x; hammer.py = e.pointerType === 'mouse' ? p.y : p.y - 40 * K; hammer.over = true;
+  if (!day.running) return;
+  hammer.tx = hammer.px; hammer.ty = hammer.py; hammer.moved = true;
+}
+stage.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { aim(e); stage.classList.toggle('mouse', day.running); } else if (e.buttons) aim(e); });
 stage.addEventListener('pointerdown', e => { userActed = true; if (!e.target.closest('button')) aim(e); });
-stage.addEventListener('pointerleave', () => stage.classList.remove('mouse'));
+stage.addEventListener('pointerleave', () => { hammer.over = false; stage.classList.remove('mouse'); });
 document.addEventListener('pointerdown', () => { userActed = true; }, { capture: true });
 window.addEventListener('keydown', e => {
   userActed = true;
   if (e.key === 'Escape' && !$('#modal').hidden && !$('#reveal').hidden) closeModal();
   if (e.key === 'Enter' && !day.running && $('#modal').hidden && !(e.target instanceof HTMLButtonElement)) { startDay(); return; }
   const step = 40 * K, map = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
-  if (map && $('#modal').hidden && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); hammer.tx = clamp(hammer.tx + map[0] * step, 0, W); hammer.ty = clamp(hammer.ty + map[1] * step, 0, H); hammer.moved = true; }
+  if (map && day.running && $('#modal').hidden && !(e.target instanceof HTMLButtonElement)) { e.preventDefault(); hammer.tx = clamp(hammer.tx + map[0] * step, 0, W); hammer.ty = clamp(hammer.ty + map[1] * step, 0, H); hammer.moved = true; }
 });
 
 /* ---------- UI ---------- */
-const abIcon = (ab, owned) => `<div class="badgeic${owned ? '' : ' dim'}" style="--rc:${RAR[ab.r].color}">${owned ? ab.icon : '?'}</div>`;
 function toast(msg, color) {
   const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; if (color) el.style.setProperty('--tc', color);
   const box = $('#toasts'); box.appendChild(el); while (box.children.length > 3) box.firstChild.remove();
   setTimeout(() => el.remove(), 2600);
 }
 function updateDayBox() {
-  const q = day.running ? day.quota : quota(S.day), cnt = day.running ? day.count : 0, t = day.running ? day.t : dayLength(S.watch);
+  const q = day.running ? day.quota : quota(S.day), cnt = day.running ? day.count : 0, t = day.running ? day.t : dayLength();
   $('#dayName').textContent = `Day ${S.day}`;
   const ck = $('#dayClock'); ck.textContent = clock(t); ck.classList.toggle('hurry', day.running && t <= 5);
   $('#dayBar').style.width = Math.min(100, cnt / q * 100) + '%';
@@ -1034,23 +1295,67 @@ function updateDayBox() {
   $('#dayTxt').textContent = cnt >= q ? `${cnt} / ${q} piggies · day cleared, keep smashing!` : `${cnt} / ${q} piggies`;
 }
 function updateHUD() {
-  $('#hCash').textContent = cash(S.cash); $('#hDay').textContent = S.day; $('#hSmashed').textContent = fmt(S.smashed);
+  $('#hCash').textContent = cash(S.cash); $('#hDay').textContent = S.day; $('#hLives').textContent = hearts(); $('#hSmashed').textContent = fmt(S.smashed);
   const nk = nextKind();
   $('#dayNext').textContent = nk ? `Next piggy: ${nk.name} on day ${nk.unlock}` : 'Every piggy unlocked';
-  updateDayBox(); updateShop();
+  if (!day.running) {
+    const n = affordable();
+    $('#shopTxt').textContent = `${cash(S.cash)} to spend · ${n ? `${n} upgrade${n > 1 ? 's' : ''} you can afford` : 'nothing affordable yet'}`;
+    $('#doNudge').textContent = !S.over && n ? `You can afford ${n} upgrade${n > 1 ? 's' : ''} in the skill tree →` : '';
+  }
+  updateDayBox(); updateSkillButtons();
 }
 setInterval(() => { if (S) updateHUD(); }, 250);
+let curTab = 'skills';
 function setTab(name) {
+  curTab = name;
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false'));
-  ['chest', 'abil', 'pigs', 'shop'].forEach(n => { $('#p-' + n).hidden = n !== name; });
-  if (name === 'abil') { S.seen = Object.assign({}, S.abil); markDirty(); renderAbilities(); }
+  ['skills', 'chest', 'weapons', 'pigs'].forEach(n => { $('#p-' + n).hidden = n !== name; });
+  if (name === 'weapons') { S.newW = 0; markDirty(); renderWeapons(); }
   if (name === 'pigs') renderPigs();
-  if (name === 'shop') renderShop();
+  if (name === 'skills') renderTree();
 }
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
 
+/* Skill tree */
+let curPath = 'ranch';
+$('#seg').addEventListener('click', e => { const b = e.target.closest('[data-path]'); if (!b) return; curPath = b.dataset.path; renderTree(); });
+function renderTree() {
+  document.querySelectorAll('#seg [data-path]').forEach(b => b.setAttribute('aria-pressed', b.dataset.path === curPath ? 'true' : 'false'));
+  const P = PATHS[curPath];
+  $('#pathBlurb').textContent = P.blurb;
+  $('#skillLock').hidden = !day.running;
+  $('#tree').innerHTML = P.tiers.map((tier, i) => {
+    const nodes = tier.map(id => {
+      const s = SKILLS[id], l = sk(id), max = l >= s.max, ok = reqMet(id);
+      const cls = !ok ? 'locked' : max ? 'maxed' : l ? 'owned' : '';
+      const reqTxt = s.req.map(([r, lv]) => `${SKILLS[r].name} lvl ${lv}`).join(' and ');
+      return `<div class="node ${cls}">
+        <div class="nh"><span class="nn">${s.name}</span><span class="nl">${l}/${s.max}</span></div>
+        <div class="nd">${l ? `<b>${s.eff(l)}</b>` : s.eff(0)}</div>
+        ${max ? '' : `<div class="nd next">Next: ${s.eff(l + 1)}</div>`}
+        ${!ok ? `<div class="req">Needs ${reqTxt}</div>` : max ? `<button class="btn" disabled type="button">Maxed</button>` : `<button class="btn" data-buy="${id}" type="button"></button>`}
+      </div>`;
+    }).join('');
+    return (i ? '<div class="link"></div>' : '') + `<div class="tier" style="--n:${tier.length}">${nodes}</div>`;
+  }).join('');
+  updateSkillButtons();
+}
+function updateSkillButtons() {
+  document.querySelectorAll('[data-buy]').forEach(b => { const c = skCost(b.dataset.buy); b.textContent = (sk(b.dataset.buy) ? 'Upgrade ' : 'Learn ') + cash(c); b.disabled = day.running || S.cash < c; });
+}
+$('#tree').addEventListener('click', e => {
+  const b = e.target.closest('[data-buy]'); if (!b) return;
+  const id = b.dataset.buy, s = SKILLS[id], c = skCost(id);
+  if (day.running || sk(id) >= s.max || !reqMet(id) || S.cash < c) return;
+  S.cash -= c; S.skills[id] = sk(id) + 1; sfx.buy(); save();
+  renderTree(); updateHUD();
+  if (!day.running && $('#doTitle').textContent === `Day ${S.day}`) readyCard();
+});
+
+/* Chests */
 $('#oddsBar').innerHTML = RORDER.map(r => `<i style="width:${ODDS[r]}%;background:${RAR[r].color}" title="${RAR[r].name}: ${ODDS[r]}%"></i>`).join('');
-$('#legend').innerHTML = RORDER.map(r => `<div><i style="background:${RAR[r].color}"></i><span>${RAR[r].name}</span><b>${ODDS[r]}%</b></div>`).join('');
+$('#legend').innerHTML = RORDER.map(r => `<div><i style="background:${RAR[r].color}"></i><span>${RAR[r].name}: ${WEAPONS.filter(w => w.r === r).map(w => w.name).join(', ')}</span><b>${ODDS[r]}%</b></div>`).join('');
 (() => { const p = $('#chestPreview'); p.width = 400; p.height = 300; const c = p.getContext('2d'); c.scale(2, 2); drawChest(c, 100, 92, 130); })();
 $('#openBtn').addEventListener('click', () => openChest(1));
 $('#open10Btn').addEventListener('click', () => openChest(10));
@@ -1064,48 +1369,60 @@ function renderChest() {
   $('#openAllBtn').textContent = S.chests >= 2 ? `Open all (${S.chests})` : 'Open all';
   const b = $('#chestBadge'); b.textContent = S.chests; b.dataset.zero = S.chests ? '0' : '1';
 }
-function renderAbilities() {
-  $('#abilCount').textContent = `${Object.keys(S.abil).length} / ${AB.length}`;
-  const unseen = Object.keys(S.abil).filter(id => (S.seen[id] || 0) < S.abil[id]).length;
-  const ab = $('#abilBadge'); ab.textContent = unseen; ab.dataset.zero = unseen ? '0' : '1';
-  $('#abilList').innerHTML = RORDER.map(r => {
-    const list = AB.filter(a => a.r === r), have = list.filter(a => S.abil[a.id]).length;
-    return `<div class="ab-group"><div class="sect-h"><span style="color:${RAR[r].color}">${RAR[r].name}</span><span>${have} / ${list.length}</span></div>` +
-      list.map(a => {
-        const l = S.abil[a.id], eq = S.equipped === a.id;
-        if (!l) return `<div class="ab locked" style="--rc:${RAR[r].color}"><div class="ic">${abIcon(a, false)}</div><div><div class="ab-name">Unknown ability</div><div class="ab-desc">Found in chests</div></div><span></span></div>`;
-        return `<div class="ab${eq ? ' equipped' : ''}" style="--rc:${RAR[r].color}"><div class="ic">${abIcon(a, true)}</div>
-          <div style="min-width:0"><div class="ab-name">${a.name}</div><div class="ab-desc">${a.desc(l)}</div>
-          <div class="pips" aria-label="Level ${l} of ${MAXLV}">${Array.from({ length: MAXLV }, (_, i) => `<i class="${i < l ? 'on' : ''}"></i>`).join('')}</div></div>
-          ${eq ? `<button class="btn ghost" data-unequip="1" type="button">Unequip</button>` : `<button class="btn" data-equip="${a.id}" type="button">Equip</button>`}</div>`;
-      }).join('') + '</div>';
+
+/* Weapons */
+const weaponLines = w => `<div><b>Trait: ${w.trait}</b></div><div>${w.text}</div>${w.aura ? '<div>Has an aura</div>' : ''}`;
+function renderChip() {
+  const w = equippedWeapon(), chip = $('#wchip');
+  chip.style.setProperty('--rc', wColor(w));
+  $('#chipName').textContent = w.name;
+  $('#chipRar').textContent = w.r ? `${RAR[w.r].name} · Trait: ${w.trait}` : 'Starter · no trait';
+  $('#chipTrait').textContent = w.text;
+}
+$('#wchip').addEventListener('click', () => setTab('weapons'));
+function renderWeapons() {
+  const cur = equippedWeapon();
+  $('#wcur').style.setProperty('--rc', wColor(cur));
+  $('#wcurRar').textContent = cur.r ? `Equipped · ${RAR[cur.r].name}` : 'Equipped · starter';
+  $('#wcurName').textContent = cur.name;
+  $('#wcurLines').innerHTML = weaponLines(cur);
+  const cc = $('#wcurCv').getContext('2d'); cc.setTransform(2, 0, 0, 2, 0, 0); cc.clearRect(0, 0, 120, 96); drawWeaponIcon(cc, cur, 120, 96, 0);
+  const found = WEAPONS.filter(w => w.r && S.owned[w.id]).length, total = WEAPONS.filter(w => w.r).length;
+  $('#wCount').textContent = `Collection ${found} / ${total}`;
+  const row = w => {
+    const own = !!S.owned[w.id], on = w.id === S.equipped, col = wColor(w);
+    if (!own) return `<div class="wrow locked" style="--rc:${col}"><canvas data-wid="${w.id}" width="112" height="88" aria-hidden="true"></canvas><div style="min-width:0"><div class="wname">???</div><div class="nd">${w.r ? RAR[w.r].name + ' weapon · found in chests' : ''}</div></div><span></span></div>`;
+    return `<div class="wrow${on ? ' on' : ''}" style="--rc:${col}"><canvas data-wid="${w.id}" width="112" height="88" aria-hidden="true"></canvas>
+      <div style="min-width:0"><div class="wname">${w.name}</div><div class="nd"><b>${w.trait}</b>: ${w.text}</div></div>
+      <div class="acts">${on ? `<button class="btn ghost sm" disabled type="button">Equipped</button>` : `<button class="btn sm" data-wequip="${w.id}" type="button">Equip</button>`}</div></div>`;
+  };
+  $('#wList').innerHTML = [null, ...RORDER].map(r => {
+    const list = WEAPONS.filter(w => w.r === r);
+    return `<div class="sect-h"><span style="color:${r ? RAR[r].color : 'var(--muted)'}">${r ? RAR[r].name : 'Starter'}</span><span>${r ? `${ODDS[r]}% per chest` : ''}</span></div>` + list.map(row).join('');
   }).join('');
+  document.querySelectorAll('#wList canvas[data-wid]').forEach(cv2 => {
+    const w = WMAP[cv2.dataset.wid], c = cv2.getContext('2d'); c.scale(2, 2); drawWeaponIcon(c, w, 56, 44, 0);
+    if (!S.owned[w.id]) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(28,16,6,.92)'; c.fillRect(0, 0, 112, 88); }
+  });
+  const b = $('#wBadge'); b.textContent = S.newW; b.dataset.zero = S.newW ? '0' : '1';
 }
-$('#abilList').addEventListener('click', e => { const b = e.target.closest('[data-equip],[data-unequip]'); if (b) equip(b.dataset.equip || null); });
-function equip(id) {
-  S.equipped = id; swingCount = 0; boltT = 0; ghostT = 0; ghostReady = false; stampT = 0; markDirty(); save();
-  renderAbilities(); renderEquipChip();
-  if (id) { sfx.buy(); toast(`${ABMAP[id].name} equipped`, RAR[ABMAP[id].r].color); }
+function equipWeapon(id) {
+  if (!S.owned[id]) return;
+  S.equipped = id; save(); renderChip(); if (curTab === 'weapons') renderWeapons();
+  const w = equippedWeapon(); sfx.buy(); toast(`${w.name} equipped`, wColor(w));
 }
-function renderEquipChip() {
-  const id = S.equipped, el = $('#equipChip');
-  if (id && S.abil[id] && ABMAP[id]) {
-    const a = ABMAP[id];
-    el.innerHTML = `<div class="ic">${abIcon(a, true)}</div><div style="min-width:0"><div class="t1">Equipped · lvl ${S.abil[id]}</div><div class="t2" style="color:${RAR[a.r].color}">${a.name}</div></div>`;
-  } else {
-    el.innerHTML = `<div class="ic"><div class="badgeic dim">–</div></div><div><div class="t1">No ability equipped</div><div class="t2">Open a chest</div></div>`;
-  }
-}
-$('#equipChip').addEventListener('click', () => setTab(Object.keys(S.abil).length ? 'abil' : 'chest'));
+$('#wList').addEventListener('click', e => { const eq = e.target.closest('[data-wequip]'); if (eq) equipWeapon(eq.dataset.wequip); });
+
+/* Piggies tab */
 function renderPigs() {
-  const have = unlockedKinds().length, newest = unlockedKinds().slice(-1)[0];
+  const have = unlockedKinds().length, newest = unlockedKinds().slice(-1)[0], gold = 1 + .2 * sk('fat');
   $('#kindCount').textContent = `${have} / ${KINDS.length}`;
   $('#kindList').innerHTML = KINDS.map((k, i) => {
     const open = k.unlock <= S.day;
-    const sub = open ? `${fmt(pigHp(k))} HP · ${cash(pigCash(k))} each${k.chest > 1 ? ` · ${num1(k.chest)}× chest chance` : ''}` : `Shows up on day ${k.unlock}`;
+    const sub = open ? `${fmt(pigHp(k))} HP · ${cash(pigCash(k) * gold)} each${k.chest > 1 ? ` · ${num1(k.chest)}× chest chance` : ''}` : `Shows up on day ${k.unlock}`;
     return `<div class="card kind${open ? '' : ' locked'}${k === newest ? ' newest' : ''}"><canvas data-kind="${i}" width="128" height="96" aria-hidden="true"></canvas>
       <div style="min-width:0"><div class="kn">${open ? k.name : '???'}${k === newest ? '<em>Newest</em>' : ''}</div><div class="si-sub">${sub}</div>
-      ${open ? `<div class="traits">${TRAITS[k.id].map(([w, t]) => `<div><b>${w}:</b> ${t}</div>`).join('')}</div>` : ''}</div></div>`;
+      ${open ? `<div class="traits">${PTRAITS[k.id].map(([w, t]) => `<div><b>${w}:</b> ${t}</div>`).join('')}</div>` : ''}</div></div>`;
   }).join('');
   document.querySelectorAll('#kindList canvas').forEach(cvs => {
     const k = KINDS[+cvs.dataset.kind], c = cvs.getContext('2d');
@@ -1113,33 +1430,12 @@ function renderPigs() {
     drawPig(c, { kind: k, hp: 1, maxHp: 1, cracks: [], seed: 0 }, 14, 0);
     if (k.unlock > S.day) { c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-atop'; c.fillStyle = 'rgba(28,16,6,.92)'; c.fillRect(0, 0, 128, 96); }
   });
+  $('#statsTxt').innerHTML = `Furthest day: <b>${S.best}</b><br>Swings: <b>${fmt(S.swings)}</b><br>Piggies smashed: <b>${fmt(S.smashed)}</b><br>Chests opened: <b>${fmt(S.opened)}</b><br>Weapons found: <b>${Object.keys(S.owned).length - 1} / ${WEAPONS.length - 1}</b>`;
 }
-function updateShop() {
-  const row = (lvId, subId, btnId, lv, max, cur, next, cost, unit) => {
-    $(lvId).textContent = max ? `lvl ${lv}/${max}` : `lvl ${lv}`;
-    const b = $(btnId);
-    if (max && lv >= max) { $(subId).innerHTML = `${unit} <b>${cur}</b> · max`; b.textContent = 'Max'; b.disabled = true; }
-    else { $(subId).innerHTML = `${unit} <b>${cur}</b> → <b>${next}</b>`; b.textContent = cash(cost); b.disabled = S.cash < cost; }
-  };
-  row('#sSpdLv', '#sSpdSub', '#buySpeed', S.speed, SPEEDMAX, num2(swingRate(S.speed)), num2(swingRate(S.speed + 1)), speedCost(S.speed), 'Swings/sec');
-  row('#sHamLv', '#sHamSub', '#buyHammer', S.hammer, 0, fmt(hammerDmg(S.hammer)), fmt(hammerDmg(S.hammer + 1)), hammerCost(S.hammer), 'Damage');
-  row('#sWatchLv', '#sWatchSub', '#buyWatch', S.watch, WATCHMAX, dayLength(S.watch) + ' s', dayLength(S.watch + 1) + ' s', watchCost(S.watch), 'Day length');
-  row('#sLuckLv', '#sLuckSub', '#buyLuck', S.luck, LUCKMAX, num1(chestBase(S.luck) * 100) + '%', num1(chestBase(S.luck + 1) * 100) + '%', luckCost(S.luck), 'Chest chance');
-}
-function renderShop() {
-  updateShop();
-  $('#statsTxt').innerHTML = `Furthest day: <b>${S.best}</b><br>Swings: <b>${fmt(S.swings)}</b><br>Piggies smashed: <b>${fmt(S.smashed)}</b><br>Chests opened: <b>${fmt(S.opened)}</b><br>Abilities found: <b>${Object.keys(S.abil).length} / ${AB.length}</b>`;
-}
-function buy(costFn, key, max) { return () => { if (max && S[key] >= max) return; const c = costFn(S[key]); if (S.cash < c) return; S.cash -= c; S[key]++; sfx.buy(); markDirty(); save(); updateHUD(); if (!day.running) readyCardRefresh(); }; }
-function readyCardRefresh() { if (!$('#dayOver').hidden && $('#doTitle').textContent === `Day ${S.day}`) readyCard(); }
-$('#buySpeed').addEventListener('click', buy(speedCost, 'speed', SPEEDMAX));
-$('#buyHammer').addEventListener('click', buy(hammerCost, 'hammer', 0));
-$('#buyWatch').addEventListener('click', buy(watchCost, 'watch', WATCHMAX));
-$('#buyLuck').addEventListener('click', buy(luckCost, 'luck', LUCKMAX));
 let resetArm = 0;
 $('#resetBtn').addEventListener('click', () => {
   const b = $('#resetBtn');
-  if (Date.now() - resetArm < 3500) { S = fresh(); pigs = []; day.running = false; save(); renderAll(); readyCard(); b.textContent = 'Reset game'; resetArm = 0; toast('Game reset'); return; }
+  if (Date.now() - resetArm < 3500) { S = fresh(); pigs = []; cacti = []; day.running = false; stage.classList.remove('mouse'); save(); renderAll(); readyCard(); b.textContent = 'Reset game'; resetArm = 0; toast('Game reset'); return; }
   resetArm = Date.now(); b.textContent = 'Click again to erase everything';
   setTimeout(() => { if (Date.now() - resetArm >= 3400) b.textContent = 'Reset game'; }, 3600);
 });
@@ -1150,24 +1446,22 @@ $('#muteBtn').addEventListener('click', () => {
 $('#muteBtn').textContent = muted ? 'Sound: off' : 'Sound: on';
 
 /* ---------- Chest opening ---------- */
-const mcv = $('#chestCv'), mctx = mcv.getContext('2d');
+const mcv = $('#chestCv'), mctx = mcv.getContext('2d'), rvCtx = $('#rvCv').getContext('2d');
 let M = null, mLast = 0;
 function rollRarity() { const tot = RORDER.reduce((a, r) => a + ODDS[r], 0); let x = Math.random() * tot; for (const r of RORDER) { x -= ODDS[r]; if (x <= 0) return r; } return 'common'; }
-function grant(rarity) {
-  const pool = AB.filter(a => a.r === rarity), ab = pool[Math.floor(Math.random() * pool.length)];
-  const cur = S.abil[ab.id] || 0;
-  if (!cur) { S.abil[ab.id] = 1; return { ab, kind: 'new', lvl: 1 }; }
-  if (cur < MAXLV) { S.abil[ab.id] = cur + 1; return { ab, kind: 'up', lvl: cur + 1 }; }
-  const coins = Math.round(RAR[rarity].val * (1 + S.day / 10)); S.cash += coins;
-  return { ab, kind: 'max', lvl: cur, coins };
+function rollWeapon() {
+  const r = rollRarity(), pool = WEAPONS.filter(w => w.r === r), w = pool[Math.floor(Math.random() * pool.length)];
+  if (S.owned[w.id]) { const dup = dupVal(w); S.cash += dup; return { w, dup }; }
+  S.owned[w.id] = true; S.newW++;
+  return { w, dup: 0 };
 }
 function openChest(n = 1) {
   n = Math.min(n, S.chests);
   if (M || !(n > 0)) return;
   S.chests -= n; S.opened += n;
-  const list = Array.from({ length: n }, () => grant(rollRarity()));
-  const res = list.reduce((a, b) => RORDER.indexOf(b.ab.r) > RORDER.indexOf(a.ab.r) ? b : a);
-  markDirty(); save();
+  const list = Array.from({ length: n }, rollWeapon);
+  const res = list.reduce((a, b) => RORDER.indexOf(b.w.r) > RORDER.indexOf(a.w.r) ? b : a);
+  save();
   M = { res, list, n, t: 0, revealed: false, sparks: [] };
   $('#modal').hidden = false; $('#reveal').hidden = true; $('#modalHint').hidden = false;
   const r = mcv.getBoundingClientRect(); mcv.width = Math.round(r.width * DPR); mcv.height = Math.round(r.height * DPR);
@@ -1177,58 +1471,62 @@ function openChest(n = 1) {
 function modalLoop(now) {
   if (!M) return;
   const dt = Math.min(.05, (now - mLast) / 1000); mLast = now; M.t += dt;
-  const c = mctx, w = mcv.width / DPR, h = mcv.height / DPR, col = RAR[M.res.ab.r].color;
+  const c = mctx, w = mcv.width / DPR, h = mcv.height / DPR, col = RAR[M.res.w.r].color;
   c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, w, h);
   let open = 0, ox = 0, oy = 0;
   if (M.t < .9) { const k = M.t / .9; ox = Math.sin(M.t * 55) * k * 7; oy = -Math.abs(Math.sin(M.t * 30)) * k * 4; if (Math.random() < dt * 12) sfx.rattle(); }
   else open = 1 - Math.pow(1 - clamp((M.t - .9) / .35, 0, 1), 3);
   if (M.t >= .9 && !M.burst) {
-    M.burst = true; const n = 12 + RORDER.indexOf(M.res.ab.r) * 12;
+    M.burst = true; const n = 12 + RORDER.indexOf(M.res.w.r) * 12;
     for (let i = 0; i < n; i++) M.sparks.push({ x: w / 2, y: h * .55, vx: rand(-200, 200), vy: rand(-380, -80), life: 0, max: rand(.8, 1.6) });
   }
-  drawChest(c, w / 2 + ox, h * .62 + oy, Math.min(w * .6, 200), open, M.t < .9 ? null : col, M.t);
+  if (!M.revealed) drawChest(c, w / 2 + ox, h * .62 + oy, Math.min(w * .6, 200), open, M.t < .9 ? null : col, M.t);
   for (const p of M.sparks) {
     p.life += dt; p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
     c.globalAlpha = clamp(1 - p.life / p.max, 0, 1); c.fillStyle = col; c.beginPath(); c.arc(p.x, p.y, 3, 0, TAU); c.fill();
   }
   c.globalAlpha = 1; M.sparks = M.sparks.filter(p => p.life < p.max);
   if (M.t > 1.2 && !M.revealed) reveal();
+  if (M.revealed && M.list.length === 1) { rvCtx.setTransform(2, 0, 0, 2, 0, 0); rvCtx.clearRect(0, 0, 180, 130); drawWeaponIcon(rvCtx, M.res.w, 180, 130, M.t); }
   requestAnimationFrame(modalLoop);
 }
-const noteFor = x => x.kind === 'new' ? 'New ability!' : x.kind === 'up' ? `Level up: ${x.lvl - 1} → ${x.lvl}` : `Already max level · +${cash(x.coins)}`;
 function syncRowEquip() { document.querySelectorAll('[data-requip]').forEach(b => { const on = b.dataset.requip === S.equipped; b.textContent = on ? 'Equipped' : 'Equip'; b.disabled = on; }); }
 function reveal() {
-  M.revealed = true; const multi = M.list.length > 1, { ab, lvl } = M.res, r = RAR[ab.r];
+  M.revealed = true; mcv.hidden = true;
+  const multi = M.list.length > 1, { w, dup } = M.res, r = RAR[w.r];
   const box = $('#reveal'); box.style.setProperty('--rc', r.color);
-  ['#rvIc', '#rvName', '#rvDesc', '#rvNote', '#rvEquip'].forEach(id => { $(id).hidden = multi; });
+  ['#rvCv', '#rvName', '#rvDesc', '#rvNote', '#rvEquip'].forEach(id => { $(id).hidden = multi; });
   $('#rvList').hidden = !multi;
   if (multi) {
-    $('#rvRar').textContent = `${M.list.length} chests opened · best: ${r.name}`;
-    const sorted = [...M.list].sort((a, b) => RORDER.indexOf(b.ab.r) - RORDER.indexOf(a.ab.r));
-    $('#rvList').innerHTML = sorted.map(x => `<div class="rv-row" style="--rc:${RAR[x.ab.r].color}"><div class="ic">${abIcon(x.ab, true)}</div>
-      <div style="min-width:0"><div class="ab-name" style="color:var(--rc)">${x.ab.name}</div><div class="ab-desc">${RAR[x.ab.r].name} · ${noteFor(x)}</div></div>
-      <button class="btn ghost" data-requip="${x.ab.id}" type="button">Equip</button></div>`).join('');
+    const fresh = M.list.filter(x => !x.dup).length, dupCash = M.list.reduce((a, x) => a + x.dup, 0);
+    $('#rvRar').textContent = `${M.list.length} chests · ${fresh} new · best: ${r.name}`;
+    const sorted = [...M.list].sort((a, b) => RORDER.indexOf(b.w.r) - RORDER.indexOf(a.w.r));
+    $('#rvList').innerHTML = sorted.map((x, i) => `<div class="wrow" style="--rc:${RAR[x.w.r].color}"><canvas data-rvi="${i}" width="112" height="88" aria-hidden="true"></canvas>
+        <div style="min-width:0"><div class="wname">${x.w.name}</div><div class="nd">${x.dup ? `Duplicate, turned into ${cash(x.dup)}` : `New! <b>${x.w.trait}</b>: ${x.w.text}`}</div></div>
+        ${x.dup ? '<span></span>' : `<button class="btn ghost sm" data-requip="${x.w.id}" type="button">Equip</button>`}</div>`).join('') +
+      (dupCash ? `<p class="note" style="text-align:center">Duplicates paid ${cash(dupCash)} in total</p>` : '');
+    document.querySelectorAll('[data-rvi]').forEach(cv2 => { const x = sorted[+cv2.dataset.rvi], c = cv2.getContext('2d'); c.scale(2, 2); drawWeaponIcon(c, x.w, 56, 44, 0); });
     syncRowEquip();
   } else {
-    $('#rvRar').textContent = r.name; $('#rvIc').innerHTML = abIcon(ab, true);
-    $('#rvName').textContent = ab.name; $('#rvDesc').textContent = ab.desc(lvl);
-    $('#rvNote').textContent = noteFor(M.res);
-    const eq = $('#rvEquip');
-    if (S.equipped === ab.id) { eq.textContent = 'Equipped'; eq.disabled = true; } else { eq.textContent = 'Equip'; eq.disabled = false; }
+    $('#rvRar').textContent = `${r.name} weapon`;
+    $('#rvName').textContent = w.name;
+    $('#rvDesc').innerHTML = weaponLines(w);
+    $('#rvNote').textContent = dup ? `You already have this one, so it turned into ${cash(dup)}` : w.aura ? 'New weapon with an aura!' : 'New weapon!';
+    const eq = $('#rvEquip'); eq.hidden = S.equipped === w.id; eq.textContent = 'Equip'; eq.disabled = false;
   }
   const again = $('#rvAgain'), nx = Math.min(M.n, S.chests);
   again.hidden = nx <= 0; again.textContent = M.n > 1 ? `Open ${nx} more` : `Open another (${S.chests})`;
   box.hidden = false; $('#modalHint').hidden = true;
-  sfx.reveal(ab.r); renderAbilities(); renderEquipChip(); renderShop(); updateHUD();
+  sfx.reveal(w.r); updateHUD();
 }
-function closeModal() { M = null; $('#modal').hidden = true; renderAll(); }
+function closeModal() { M = null; $('#modal').hidden = true; mcv.hidden = false; renderAll(); }
 mcv.addEventListener('click', () => { if (M && M.t < .9) M.t = .9; });
-$('#rvEquip').addEventListener('click', () => { if (!M) return; equip(M.res.ab.id); $('#rvEquip').textContent = 'Equipped'; $('#rvEquip').disabled = true; });
-$('#rvAgain').addEventListener('click', () => { if (!M) return; const n = M.n; M = null; openChest(n); });
-$('#rvList').addEventListener('click', e => { const b = e.target.closest('[data-requip]'); if (b) { equip(b.dataset.requip); syncRowEquip(); } });
+$('#rvEquip').addEventListener('click', () => { if (!M) return; equipWeapon(M.res.w.id); $('#rvEquip').textContent = 'Equipped'; $('#rvEquip').disabled = true; });
+$('#rvAgain').addEventListener('click', () => { if (!M) return; const n = M.n; M = null; mcv.hidden = false; openChest(n); });
+$('#rvList').addEventListener('click', e => { const b = e.target.closest('[data-requip]'); if (b) { equipWeapon(b.dataset.requip); syncRowEquip(); } });
 $('#rvClose').addEventListener('click', closeModal);
 
-function renderAll() { renderChest(); renderAbilities(); renderEquipChip(); renderPigs(); renderShop(); updateHUD(); }
+function renderAll() { renderChest(); renderChip(); renderTree(); if (curTab === 'weapons') renderWeapons(); else { const b = $('#wBadge'); b.textContent = S.newW; b.dataset.zero = S.newW ? '0' : '1'; } renderPigs(); updateHUD(); }
 
 /* ---------- Boot ---------- */
 function start(data) {
@@ -1236,12 +1534,12 @@ function start(data) {
   if (window.claude?.hot?.snapshot) window.claude.hot.snapshot(() => ({ S }));
   new ResizeObserver(resize).observe(stage); resize();
   requestAnimationFrame(t => { last = t; frame(t); });
-  try { renderAll(); readyCard(); } catch (e) { console.error(e); }
+  try { renderAll(); readyCard(); setShopMode(true); } catch (e) { console.error(e); }
   setInterval(() => { if (dirty) save(); }, 1500);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 })();
 </script>
-
-</body></html>
+</body>
+</html>
