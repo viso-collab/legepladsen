@@ -76,7 +76,23 @@ h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
 .t-tumult .tags i { background: rgba(76,201,240,.18); }
 .t-kart .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffd23f; text-shadow: 2px 2px 0 #ff3d6e; }
 
-footer { text-align: center; color: var(--muted); font-size: 13px; }
+footer { text-align: center; color: var(--muted); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.made { display: inline-flex; align-items: center; gap: 8px; color: var(--fg); font-weight: 500; font-size: 14px; }
+.made svg { width: 26px; height: 21px; }
+
+/* playful emojis scattered over the background */
+.home { position: relative; z-index: 1; }
+.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.confetti span {
+  position: absolute; left: var(--x); top: var(--y); font-size: var(--s, 30px); line-height: 1;
+  opacity: .8; transform: rotate(var(--r, 0deg));
+  animation: bob 7s ease-in-out var(--d, 0s) infinite;
+}
+.confetti .mark { color: var(--fg); opacity: .06; }
+.confetti .mark svg { width: 100%; height: 100%; display: block; }
+@keyframes bob { 50% { transform: translateY(-12px) rotate(calc(var(--r, 0deg) + 9deg)); } }
+@media (max-width: 660px) { .confetti span { --s: 22px; opacity: .55; } .confetti span:nth-child(n+9) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .confetti span { animation: none; } }
 
 /* game view */
 .player { position: fixed; inset: 0; display: flex; flex-direction: column; background: #000; z-index: 20; }
@@ -102,6 +118,27 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
 @media (prefers-reduced-motion: reduce) { .tile, h1 span { transition: none; } }
 </style>
 
+<div class="confetti" aria-hidden="true">
+  <span style="--x:4%;--y:9%;--r:-14deg;--d:0s;--s:36px">🎮</span>
+  <span style="--x:90%;--y:7%;--r:12deg;--d:-1.5s;--s:34px">👾</span>
+  <span style="--x:18%;--y:22%;--r:-30deg;--d:-3s;--s:30px">🚀</span>
+  <span style="--x:79%;--y:24%;--r:10deg;--d:-2s;--s:26px">⭐</span>
+  <span style="--x:2%;--y:46%;--r:18deg;--d:-4s;--s:30px">🎲</span>
+  <span style="--x:93%;--y:44%;--r:-8deg;--d:-.5s;--s:32px">🦊</span>
+  <span style="--x:6%;--y:78%;--r:-10deg;--d:-2.5s;--s:30px">🧩</span>
+  <span style="--x:91%;--y:80%;--r:8deg;--d:-5s;--s:34px">🎈</span>
+  <span style="--x:13%;--y:62%;--r:6deg;--d:-3.5s;--s:28px">🐷</span>
+  <span style="--x:84%;--y:63%;--r:-6deg;--d:-1s;--s:28px">🏎️</span>
+  <span style="--x:26%;--y:6%;--r:24deg;--d:-4.5s;--s:26px">🪄</span>
+  <span style="--x:70%;--y:5%;--r:-18deg;--d:-6s;--s:28px">🍭</span>
+  <span style="--x:1%;--y:24%;--r:0deg;--d:-2.2s;--s:24px">💥</span>
+  <span style="--x:95%;--y:25%;--r:-4deg;--d:-3.8s;--s:26px">🌈</span>
+  <span style="--x:3%;--y:94%;--r:12deg;--d:-1.2s;--s:26px">🎯</span>
+  <span style="--x:95%;--y:95%;--r:0deg;--d:-5.5s;--s:24px">✨</span>
+  <span style="--x:16%;--y:88%;--r:-8deg;--d:-6.5s;--s:26px">🦉</span>
+  <span style="--x:83%;--y:90%;--r:14deg;--d:-4.2s;--s:28px">🕹️</span>
+  <span class="mark" style="--x:72%;--y:58%;--r:0deg;--d:-3s;width:240px;height:194px;animation-duration:12s"><svg viewBox="0 0 108 87" fill="currentColor" aria-hidden="true"><path d="M 108 86.4 L 78.242 86.4 L 36.982 1.636 L 66.74 1.636 L 108 86.4 Z"/><path d="M 17.509 86.4 C 27.179 86.4 35.018 78.634 35.018 69.055 C 35.018 59.475 27.179 51.709 17.509 51.709 C 7.839 51.709 0 59.475 0 69.055 C 0 78.634 7.839 86.4 17.509 86.4 Z"/></svg></span>
+</div>
 <main class="home" id="home">
   <header>
     <h1 aria-label="Legepladsen"><span>Le</span><span>ge</span><span>plad</span><span>sen</span></h1>
@@ -149,7 +186,10 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
       </span>
     </button>
   </section>
-  <footer>Tryk på et spil for at åbne det. Tilbage-knappen øverst fører dig hertil igen.</footer>
+  <footer>
+    <span>Tryk på et spil for at åbne det. Tilbage-knappen øverst fører dig hertil igen.</span>
+    <span class="made"><svg viewBox="0 0 108 87" fill="currentColor" aria-hidden="true"><path d="M 108 86.4 L 78.242 86.4 L 36.982 1.636 L 66.74 1.636 L 108 86.4 Z"/><path d="M 17.509 86.4 C 27.179 86.4 35.018 78.634 35.018 69.055 C 35.018 59.475 27.179 51.709 17.509 51.709 C 7.839 51.709 0 59.475 0 69.055 C 0 78.634 7.839 86.4 17.509 86.4 Z"/></svg>Lavet hos Abtion</span>
+  </footer>
 </main>
 
 <div class="player" id="player" hidden>
