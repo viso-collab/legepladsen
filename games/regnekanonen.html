@@ -191,7 +191,8 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   let particles = [], floats = [], phase = "play", angle = Math.PI / 2, time = 0, betweenT = 0, signPop = 1;
   let timeScale = 1, zoom = { x: CX, y: H / 2, z: 1, target: 1 }, hover = -1, clearT = 0, clearQueue = [], fireworkT = 0;
   let power = 0, rings = [], shake = 0, beams = [], pt = 0;
-  const SHOT_SPEED = 950, LANES = [250, 370, 490], SPAN = (BX1 - BX0) + 2 * PEG_R + 16;
+  const SHOT_SPEED = 950, LANES = [250, 370, 490], LANE_X0 = BX0 + PEG_R + 4, LANE_W = (BX1 - BX0) - 2 * PEG_R - 8, PEG_D = 2 * PEG_R + 4;
+  let lanes = [];
   const laneSpeed = () => 34 + (level - 1) * 4.5;
   const owl = { mood: "idle", moodT: 0, blinkT: 2, hop: 0, lookX: 0, lookY: 0 };
   let speech = { text: "", t: 0 };
@@ -337,7 +338,35 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     let k = 4; while (out.size < 4) { const v = a + k++; if (v !== a) out.add(v); }
     return [...out];
   }
-  const pegXAt = (p, t) => BX0 - PEG_R - 8 + ((((p.off + p.vel * t) % SPAN) + SPAN) % SPAN);
+  // Answer balls bounce between the side walls and off each other. Each lane is solved exactly:
+  // equal balls bouncing elastically follow the same paths as "ghosts" passing through each other,
+  // so we move ghosts on a shrunken track (zig-zag between 0 and R), sort them, and give the k-th
+  // ball the k-th ghost plus k ball-widths. Balls never overlap and the motion stays predictable.
+  function laneGhosts(L, t) {
+    return L.ghosts.map(g => { const ph = (((g.ph0 + g.sp * (t - L.t0)) % (2 * L.R)) + 2 * L.R) % (2 * L.R); return ph < L.R ? ph : 2 * L.R - ph; }).sort((a, b) => a - b);
+  }
+  const pegXAt = (p, t) => { const L = p.L; return LANE_X0 + laneGhosts(L, t)[p.rank] + p.rank * PEG_D; };
+  function makeLane(L, members, t, xs, dirs) {
+    // build ghosts that put the members exactly at xs (sorted left to right) moving in dirs
+    L.members = members; L.t0 = t; L.R = Math.max(1, LANE_W - (members.length - 1) * PEG_D);
+    L.ghosts = members.map((m, k) => { const u = Math.max(0, Math.min(L.R, xs[k] - LANE_X0 - k * PEG_D)); return { ph0: dirs[k] > 0 ? u : 2 * L.R - u, sp: L.sp[k] }; });
+    members.forEach((m, k) => { m.L = L; m.rank = k; });
+  }
+  function laneDirs(L, t) {
+    // direction of each ranked ball right now (sample a moment later)
+    const a = laneGhosts(L, t), b = laneGhosts(L, t + .01);
+    return a.map((u, k) => b[k] >= u ? 1 : -1);
+  }
+  function refreshLanes(t) {
+    for (const L of lanes) {
+      if (L.members.every(m => m.alive)) continue;
+      const keep = L.members.filter(m => m.alive); if (!keep.length) { L.members = []; continue; }
+      const dirs = laneDirs(L, t), xs = [], ds = [];
+      L.members.forEach((m, k) => { if (m.alive) { xs.push(m.x); ds.push(dirs[k]); } });
+      L.sp = L.sp.slice(0, keep.length);
+      makeLane(L, keep, t, xs, ds);
+    }
+  }
   function placePeg(p, t) { if (!p.lit) { p.x = pegXAt(p, t); p.y = p.lane + Math.sin(t * 1.6 + p.off) * 6; } }
   const MUZZLE = 46;
   const clampAngle = a => Math.max(.22, Math.min(Math.PI - .22, a));
@@ -357,14 +386,18 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     signPop = 0;
     const opts = shuffle([prob.ans, ...distractors(prob)]);
     // moving targets: 5 balls on 3 horizontal lanes (2+2+1), lanes glide opposite ways and wrap around
-    const counts = shuffle([2, 2, 1]), dirs = Math.random() < .5 ? [1, -1, 1] : [-1, 1, -1];
-    let k = 0; pt = 0; pegs = [];
+    const counts = shuffle([2, 2, 1]);
+    let k = 0; pt = 0; pegs = []; lanes = [];
     LANES.forEach((ly, li) => {
-      const n = counts[li], v = dirs[li] * laneSpeed() * (.85 + Math.random() * .3), base = Math.random() * SPAN;
+      const n = counts[li], members = [];
       for (let j = 0; j < n; j++, k++) {
         const val = opts[k];
-        pegs.push({ lane: ly, vel: v, off: base + j * SPAN / n + (Math.random() - .5) * 60, x: 0, y: ly, v: val, ok: val === prob.ans, alive: true, lit: false, litT: 0, shake: 0, wrong: 0, dying: 0, appear: -.35 - k * .09 });
+        members.push({ lane: ly, off: Math.random() * 6.28, x: 0, y: ly, v: val, ok: val === prob.ans, alive: true, lit: false, litT: 0, shake: 0, wrong: 0, dying: 0, appear: -.35 - k * .09 });
       }
+      const L = { y: ly, sp: members.map(() => laneSpeed() * (.8 + Math.random() * .4)) };
+      const R = LANE_W - (n - 1) * PEG_D, us = members.map(() => Math.random() * R).sort((a, b) => a - b);
+      makeLane(L, members, 0, us.map((u, j) => LANE_X0 + u + j * PEG_D), members.map(() => Math.random() < .5 ? 1 : -1));
+      lanes.push(L); pegs.push(...members);
     });
     pegs.forEach(p => placePeg(p, 0));
     phase = "play";
@@ -500,8 +533,19 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     owl.lookX += (lx - owl.lookX) * .15; owl.lookY += (ly - owl.lookY) * .15;
 
     pt += dt;
+    refreshLanes(pt);
     for (const p of pegs) {
+      const ox = p.x;
       placePeg(p, pt);
+      // little squish + tick when a ball turns around (hit a wall or another ball)
+      const d = Math.sign(p.x - ox);
+      if (d && p.dir && d !== p.dir && !p.lit && p.alive && p.appear > 0) {
+        p.shake = Math.max(p.shake, .12);
+        const wallHit = p.x < LANE_X0 + 3 || p.x > LANE_X0 + LANE_W - 3;
+        burst(p.x - d * PEG_R, p.y, wallHit ? "#7ef0ff" : "#ffffff", 5, 70);
+        tone(wallHit ? 420 : 620, .04, "sine", .04);
+      }
+      if (d) p.dir = d;
       p.shake = Math.max(0, p.shake - dt); p.wrong = Math.max(0, p.wrong - dt); p.appear += dt;
       if (p.dying > 0 && p.alive) { p.dying -= dt; if (p.dying <= 0) { p.alive = false; burst(p.x, p.y, "#c9c2e8", 14, 140); } }
       if (p.lit && p.alive) { p.litT += dt; if (p.litT > .9) { p.alive = false; burst(p.x, p.y, "#ffcf4a", 22, 190); tone(1400 + Math.random() * 300, .05, "sine", .05); } }
