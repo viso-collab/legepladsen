@@ -141,6 +141,14 @@ kbd {
 .item .tag.price { color: var(--gold); font-weight: 700; }
 .item .tag.short { color: var(--bad); }
 .shop-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.reset {
+  font-family: var(--font-ui); font-weight: 700; font-size: 13px; letter-spacing: .04em;
+  color: var(--ink-dim); background: transparent; border: 2px solid rgba(255,255,255,.2); border-radius: 5px;
+  padding: 10px 14px; cursor: pointer;
+}
+.reset:hover { color: var(--ink); border-color: var(--ink-dim); }
+.reset.armed { color: #1b1033; background: var(--bad); border-color: var(--bad); }
+.reset:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .item.nope { animation: none; } }
 </style>
 </head>
@@ -195,7 +203,10 @@ kbd {
       <div class="grid" id="shopGrid"></div>
       <div class="shop-foot">
         <span class="hint">Klik for at købe. Klik på noget du ejer for at vælge det.</span>
-        <button class="btn" id="shopBack" type="button">Tilbage</button>
+        <div class="row">
+          <button class="reset" id="resetBtn" type="button">Nulstil fremskridt</button>
+          <button class="btn" id="shopBack" type="button">Tilbage</button>
+        </div>
       </div>
     </div>
   </div>
@@ -273,16 +284,14 @@ kbd {
   ];
 
   // ---------- save (per-viewer, browser only) ----------
-  const KEY = 'spikeLaneSave2';
-  let save = { best: 0, coins: 0, skins: ['classic'], themes: ['dusk'], skin: 'classic', theme: 'dusk' };
+  const KEY = 'spikeLaneSave3';   // new key = everyone starts fresh (Nov 2026 reset)
+  const fresh = () => ({ best: 0, coins: 0, skins: ['classic'], themes: ['dusk'], skin: 'classic', theme: 'dusk' });
+  let save = fresh();
   try {
     const raw = localStorage.getItem(KEY);
     if (raw) save = Object.assign(save, JSON.parse(raw));
-    else save.best = parseInt(localStorage.getItem('spikeLaneBest') || '0', 10) || 0;
+    for (const k of ['spikeLaneSave2', 'spikeLaneBest']) localStorage.removeItem(k);
   } catch (e) {}
-  const hotData = window.claude?.hot?.data;
-  if (hotData?.save) save = Object.assign(save, hotData.save);
-  window.claude?.hot?.snapshot?.(() => ({ save }));
   function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
   const skinOf = () => SKINS.find(s => s.id === save.skin) || SKINS[0];
   const themeOf = () => THEMES.find(t => t.id === save.theme) || THEMES[0];
@@ -424,11 +433,57 @@ kbd {
     for (let j = 1; j <= 7; j++) { x += (hash(e.k, j) - 0.5) * g.w * 0.05; y = g.horizon * (0.2 + j * 0.114); c.lineTo(x, y); }
     c.stroke(); c.restore();
   }
-  function drawBirds(c, g, time) {
-    const e = ev(time, 10, 6, 1);
+  function birdShape(c, bx, by, s, flap) {
+    c.beginPath(); c.moveTo(bx - 7 * s, by - flap); c.quadraticCurveTo(bx - 3 * s, by - 3 * s, bx, by); c.quadraticCurveTo(bx + 3 * s, by - 3 * s, bx + 7 * s, by - flap); c.stroke();
+  }
+  function drawBat(c, g, time) {
+    const e = ev(time, 11, 5, 13);
+    if (!e) return;
+    const s = Math.max(0.8, g.w / 800), x = g.w + 30 - e.u * (g.w + 60), y = g.horizon * (0.35 + e.r * 0.25) + Math.sin(e.u * 25) * 10 * s;
+    const f = Math.sin(time * 18) * 5 * s;
+    c.fillStyle = '#05060f';
+    c.beginPath(); c.moveTo(x, y);
+    c.quadraticCurveTo(x - 6 * s, y - 4 * s - f, x - 13 * s, y - f); c.lineTo(x - 9 * s, y + 1 * s); c.lineTo(x - 5 * s, y - 1 * s); c.lineTo(x - 2 * s, y + 3 * s);
+    c.lineTo(x + 2 * s, y + 3 * s); c.lineTo(x + 5 * s, y - 1 * s); c.lineTo(x + 9 * s, y + 1 * s); c.lineTo(x + 13 * s, y - f); c.quadraticCurveTo(x + 6 * s, y - 4 * s - f, x, y);
+    c.fill();
+  }
+  function drawVulture(c, g, time) {
+    const e = ev(time, 12, 7, 14);
+    if (!e) return;
+    const s = Math.max(1, g.w / 600), cx = g.w * (0.2 + e.r * 0.6), cy = g.horizon * 0.35, R = g.w * 0.06;
+    const a = e.u * Math.PI * 3, alpha = Math.sin(Math.PI * e.u);
+    c.strokeStyle = `rgba(60,25,20,${0.8 * alpha})`; c.lineWidth = 2;
+    birdShape(c, cx + Math.cos(a) * R, cy + Math.sin(a) * R * 0.35, s, Math.sin(time * 3) * 1.5 * s);
+  }
+  function drawSnow(c, g, time) {
+    const e = ev(time, 9, 4.5, 15);
+    if (!e) return;
+    const alpha = Math.sin(Math.PI * e.u);
+    c.fillStyle = `rgba(255,255,255,${0.8 * alpha})`;
+    for (let i = 0; i < 45; i++) {
+      const x = hash(i, e.k) * g.w + Math.sin(time * 1.5 + i) * 10;
+      const y = (hash(i, e.k + 50) * 0.4 + e.u * 0.7) * g.h;
+      const s = 1.5 + (i % 3);
+      c.fillRect(x, y, s, s);
+    }
+  }
+  function drawDrone(c, g, th, time) {
+    const e = ev(time, 10, 6, 16);
+    if (!e) return;
+    const x = -20 + e.u * (g.w + 40), y = g.horizon * (0.45 + e.r * 0.2) + Math.sin(time * 3) * 3;
+    const beam = c.createLinearGradient(0, y, 0, g.horizon);
+    beam.addColorStop(0, hexA(th.line, 0.35)); beam.addColorStop(1, hexA(th.line, 0));
+    c.fillStyle = beam;
+    c.beginPath(); c.moveTo(x - 2, y); c.lineTo(x + 2, y); c.lineTo(x + 14, g.horizon); c.lineTo(x - 14, g.horizon); c.closePath(); c.fill();
+    c.fillStyle = '#9fb3c0'; c.fillRect(x - 8, y - 2, 16, 4);
+    c.fillRect(x - 11, y - 4, 6, 1.5); c.fillRect(x + 5, y - 4, 6, 1.5);
+    if (Math.sin(time * 8) > 0) { c.fillStyle = th.line; c.fillRect(x - 1.5, y - 1.5, 3, 3); }
+  }
+  function drawBirds(c, g, time, color = 'rgba(27,16,51,.8)', salt = 1, period = 10) {
+    const e = ev(time, period, 6, salt);
     if (!e) return;
     const x0 = -60 + e.u * (g.w + 120), y0 = g.horizon * (0.3 + e.r * 0.3), s = Math.max(0.7, g.w / 900);
-    c.strokeStyle = 'rgba(27,16,51,.8)'; c.lineWidth = 1.6;
+    c.strokeStyle = color; c.lineWidth = 1.6;
     for (let i = 0; i < 5; i++) {
       const bx = x0 - Math.abs(i - 2) * 16 * s, by = y0 + (i - 2) * 9 * s, flap = Math.sin(time * 10 + i) * 3 * s;
       c.beginPath(); c.moveTo(bx - 7 * s, by - flap); c.quadraticCurveTo(bx - 3 * s, by - 3 * s, bx, by); c.quadraticCurveTo(bx + 3 * s, by - 3 * s, bx + 7 * s, by - flap); c.stroke();
@@ -479,6 +534,16 @@ kbd {
     const glow = c.createRadialGradient(vx, top, 0, vx, top, bw * 0.5);
     glow.addColorStop(0, 'rgba(255,120,40,.6)'); glow.addColorStop(1, 'rgba(255,120,40,0)');
     c.fillStyle = glow; c.fillRect(vx - bw * 0.5, top - bw * 0.5, bw, bw);
+    // smoke that rises after each eruption (same timing as the lava below)
+    const sm = ev(time, 8, 5, 4);
+    if (sm) {
+      for (let i = 0; i < 4; i++) {
+        const u = Math.max(0, sm.u - i * 0.12);
+        if (u <= 0) continue;
+        c.fillStyle = `rgba(60,40,40,${0.45 * (1 - u)})`;
+        c.beginPath(); c.arc(vx + Math.sin(u * 4 + i) * bw * 0.15, top - u * g.h * 0.2, bw * (0.1 + u * 0.3), 0, Math.PI * 2); c.fill();
+      }
+    }
     const e = ev(time, 8, 2.2, 4);
     if (!e) return;
     for (let i = 0; i < 14; i++) {
@@ -546,7 +611,7 @@ kbd {
       }
     }
     // Midnat: a shooting star now and then
-    if (th.id === 'midnight' || th.id === 'arctic' || th.id === 'space') {
+    if (th.id === 'midnight' || th.id === 'arctic' || th.id === 'space' || th.id === 'dusk') {
       const period = 7, k = Math.floor(time / period), u = (time % period) / 0.7;
       if (u < 1) {
         const hx = Math.abs(Math.sin(k * 51.3)), hy = Math.abs(Math.sin(k * 17.9));
@@ -617,6 +682,11 @@ kbd {
     }
     // occasional sky events
     if (th.id === 'dusk') drawBirds(c, g, time);
+    if (th.id === 'forest') drawBirds(c, g, time, 'rgba(30,60,35,.8)', 21, 13);
+    if (th.id === 'midnight') drawBat(c, g, time);
+    if (th.id === 'desert') drawVulture(c, g, time);
+    if (th.id === 'arctic') drawSnow(c, g, time);
+    if (th.id === 'cyber') drawDrone(c, g, th, time);
     if (th.id === 'candy') drawBalloon(c, g, time);
     if (th.id === 'city') drawPlane(c, g, time);
     if (th.id === 'space') drawUfo(c, g, time);
@@ -1016,6 +1086,21 @@ kbd {
   $('shopBtn1').addEventListener('click', openShop);
   $('shopBtn2').addEventListener('click', openShop);
   $('shopBack').addEventListener('click', closeShop);
+  // two-click reset: first click arms it, second click within 3 s wipes the save
+  let resetTimer = 0;
+  $('resetBtn').addEventListener('click', () => {
+    const b = $('resetBtn');
+    if (!b.classList.contains('armed')) {
+      b.classList.add('armed'); b.textContent = 'Sikker? Klik igen';
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { b.classList.remove('armed'); b.textContent = 'Nulstil fremskridt'; }, 3000);
+      return;
+    }
+    clearTimeout(resetTimer);
+    save = fresh(); persist(); refreshWallet(); renderShop();
+    b.classList.remove('armed'); b.textContent = 'Nulstillet';
+    setTimeout(() => { b.textContent = 'Nulstil fremskridt'; }, 1500);
+  });
   $('tabSkins').addEventListener('click', () => { shopTab = 'skins'; renderShop(); });
   $('tabThemes').addEventListener('click', () => { shopTab = 'themes'; renderShop(); });
 
