@@ -135,7 +135,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     <div class="shop" id="shop" hidden></div>
   </div>
   <div class="chips" id="chips"></div>
-  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
+  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Hopper kuglen på en væg, før den rammer rigtigt, får du 25 bonuspoint for et bandeskud. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
 </div>
 
 <script>
@@ -384,7 +384,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   function shoot() {
     if (phase !== "play" || shopOpen) return;
     phase = "fly";
-    shot = { x: CX + Math.cos(angle) * MUZZLE, y: CY - 8 + Math.sin(angle) * MUZZLE, vx: Math.cos(angle) * SHOT_SPEED, vy: Math.sin(angle) * SHOT_SPEED, trail: [] };
+    shot = { x: CX + Math.cos(angle) * MUZZLE, y: CY - 8 + Math.sin(angle) * MUZZLE, vx: Math.cos(angle) * SHOT_SPEED, vy: Math.sin(angle) * SHOT_SPEED, trail: [], bounces: 0 };
     tone(260, .15, "triangle", .18, 2.4);
     burst(shot.x, shot.y, "#ffffff", 8, 120);
   }
@@ -451,12 +451,13 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     fallers.push({ x: b.x, y: b.y, vx: dx / d * 220 + (Math.random() - .5) * 90, vy: -180, trail: [] });
     if (p.ok) {
       p.lit = true; p.litT = 0; streak++;
-      const pts = 10 * streak; score += pts; addCoins(pts);
+      const bonus = 25 * b.bounces, pts = 10 * streak + bonus; score += pts; addCoins(pts);
+      if (bonus) { floatText(p.x, p.y + 82, b.bounces > 1 ? `Dobbelt bandeskud! +${bonus}` : `Bandeskud! +${bonus}`, "#7ef0ff", 20); [880, 1175, 1568].forEach((n, i) => setTimeout(() => tone(n, .14, "triangle", .14), 150 + i * 70)); }
       solved[pi] = `${ptext(prob)} = ${prob.ans}`;
       if (power < POWER_MAX) { power++; if (power === POWER_MAX) { say("Min månekugle er fuld! Klik på mig eller på UGLESYN, så fjerner jeg to forkerte svar.", 5); tone(1047, .3, "sine", .12); } }
       burst(p.x, p.y, "#ffb21f", 16);
       floatText(p.x, p.y - 50, solved[pi], "#fff8ec", 26);
-      floatText(p.x, p.y + 52, streak > 1 ? `+${pts}  (${streak} i træk!)` : `+${pts}`, "#ffd23f", 18);
+      floatText(p.x, p.y + 52, streak > 1 ? `+${pts - bonus}  (${streak} i træk!)` : `+${pts - bonus}`, "#ffd23f", 18);
       tone([523, 659, 784, 1047][Math.min(streak - 1, 3)], .22, "sine", .22);
       mood("happy");
       if (power < POWER_MAX) say(PRAISE[Math.random() * PRAISE.length | 0], 2.5);
@@ -514,8 +515,12 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     if (shot) {
       shot.trail.push(shot.x, shot.y); if (shot.trail.length > 40) shot.trail.splice(0, 2);
       shot.x += shot.vx * dt; shot.y += shot.vy * dt;
-      if (shot.x < BX0 + BALL_R) { shot.x = BX0 + BALL_R; shot.vx = Math.abs(shot.vx); tone(500, .04, "sine", .06); }
-      if (shot.x > BX1 - BALL_R) { shot.x = BX1 - BALL_R; shot.vx = -Math.abs(shot.vx); tone(500, .04, "sine", .06); }
+      const wall = shot.x < BX0 + BALL_R ? -1 : shot.x > BX1 - BALL_R ? 1 : 0;
+      if (wall) {
+        shot.x = wall < 0 ? BX0 + BALL_R : BX1 - BALL_R; shot.vx = -wall * Math.abs(shot.vx); shot.bounces++;
+        tone(700 + shot.bounces * 200, .08, "triangle", .12); burst(shot.x, shot.y, "#7ef0ff", 12, 160);
+        rings.push({ x: shot.x, y: shot.y, t: .55 });
+      }
       const hit = pegs.find(p => hittable(p) && Math.hypot(p.x - shot.x, p.y - shot.y) < PEG_R + BALL_R);
       if (hit) resolve(hit);
       else if (shot.y > BUCKET_Y - 10) {
@@ -1366,14 +1371,26 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       for (const p of pegs) drawPeg(p, th);
       drawBucket();
       if (phase === "play" && !shopOpen) {
-        // dotted aim line out of the barrel
-        ctx.save(); ctx.translate(CX, CY - 8); ctx.rotate(angle);
-        for (let k = 0; k < 9; k++) {
-          const d = MUZZLE + 14 + k * 26 + (time * 40) % 26;
-          ctx.globalAlpha = .85 * (1 - k / 9); ctx.fillStyle = "#ffffff";
-          ctx.beginPath(); ctx.arc(d, 0, 4.5 - k * .3, 0, 6.28); ctx.fill();
+        // aim guide: dots out of the barrel; if the shot reaches a side wall on the board, dots run to the wall
+        // and a short golden line shows which way the ball will bounce
+        const dx = Math.cos(angle), dy = Math.sin(angle), sx = CX + dx * MUZZLE, sy = CY - 8 + dy * MUZZLE;
+        const wx = dx > 0 ? BX1 - BALL_R : BX0 + BALL_R, tw = Math.abs(dx) > .01 ? (wx - sx) / dx : 1e9, hy = sy + dy * tw;
+        const toWall = hy < BUCKET_Y - 40, len = toWall ? tw : 240, step = 26, off = (time * 40) % step;
+        ctx.fillStyle = "#ffffff";
+        for (let d = 14 + off; d < len; d += step) {
+          ctx.globalAlpha = toWall ? .75 : .85 * (1 - d / len);
+          ctx.beginPath(); ctx.arc(sx + dx * d, sy + dy * d, toWall ? 3.6 : 4.5 - d / len * 2.4, 0, 6.28); ctx.fill();
         }
-        ctx.globalAlpha = 1; ctx.restore();
+        if (toWall) {
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = "#7ef0ff"; ctx.lineWidth = 3; ctx.shadowColor = "#7ef0ff"; ctx.shadowBlur = 10;
+          ctx.beginPath(); ctx.arc(wx, hy, 9 + Math.sin(time * 6) * 2, 0, 6.28); ctx.stroke();
+          const ex = wx - dx * 130, ey = hy + dy * 130;
+          const lg = ctx.createLinearGradient(wx, hy, ex, ey); lg.addColorStop(0, "rgba(126,240,255,.95)"); lg.addColorStop(1, "rgba(126,240,255,0)");
+          ctx.strokeStyle = lg; ctx.lineWidth = 4; ctx.setLineDash([10, 7]); ctx.lineDashOffset = -time * 30;
+          ctx.beginPath(); ctx.moveTo(wx, hy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur = 0;
+        }
+        ctx.globalAlpha = 1;
       }
       ctx.save(); ctx.translate(CX, CY - 8); ctx.rotate(angle);
       const bg = ctx.createLinearGradient(0, -13, 0, 13);
@@ -1446,7 +1463,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     requestAnimationFrame(loop);
   }
 
-  window.__gk = { get pegs() { return pegs; }, get angle() { return angle; }, shoot, aimAt, get phase() { return phase; }, get power() { return power; }, get mistakes() { return mistakes; }, get level() { return level; }, get prob() { return prob; }, fire, useOwlPower, startLevel };
+  window.__gk = { get pegs() { return pegs; }, get angle() { return angle; }, get score() { return score; }, get pt() { return pt; }, set angle(v) { angle = v; }, pegXAt, shoot, aimAt, get phase() { return phase; }, get power() { return power; }, get mistakes() { return mistakes; }, get level() { return level; }, get prob() { return prob; }, fire, useOwlPower, startLevel };
 
   let started = false;
   function start(data) {
