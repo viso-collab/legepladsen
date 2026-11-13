@@ -74,6 +74,9 @@ h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
 .t-tumult { --t-bg: #1b1640; --t-fg: #f1efff; }
 .t-tumult .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffb627; text-shadow: 2px 2px 0 #140e1e; }
 .t-tumult .tags i { background: rgba(76,201,240,.18); }
+.t-spike { --t-bg: #1b1033; --t-fg: #fff4e6; }
+.t-spike .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffd23f; text-shadow: 2px 2px 0 #ff6fb5; }
+.t-spike .tags i { background: rgba(255,111,181,.2); }
 .t-kart .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffd23f; text-shadow: 2px 2px 0 #ff3d6e; }
 
 footer { text-align: center; color: var(--muted); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -142,7 +145,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
 <main class="home" id="home">
   <header>
     <h1 aria-label="Legepladsen"><span>Le</span><span>ge</span><span>plad</span><span>sen</span></h1>
-    <p class="lead">Fem små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
+    <p class="lead">Seks små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
   </header>
   <section class="grid" aria-label="Spil">
     <button class="tile t-mouse" type="button" data-game="musefelt">
@@ -185,6 +188,14 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
         <span class="tags"><i>Tastatur eller controller</i><i>8 figurer</i><i>Online</i><i>2v2</i></span>
       </span>
     </button>
+    <button class="tile t-spike" type="button" data-game="spike-lane">
+      <span class="art"><canvas data-art="spike" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Spike Lane</span>
+        <span class="desc">Skift mellem tre baner og undgå spikes, mens farten stiger. Tag chancen for mønterne og køb skins og baggrunde.</span>
+        <span class="tags"><i>Tastatur eller touch</i><i>Butik</i><i>7 skins</i><i>7 baggrunde</i></span>
+      </span>
+    </button>
   </section>
   <footer>
     <span>Tryk på et spil for at åbne det. Tilbage-knappen øverst fører dig hertil igen.</span>
@@ -208,6 +219,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
     'piggy-smash': { name: 'Piggy Smash', src: 'games/piggy-smash.html' },
     'kart-kaos': { name: 'Kart Kaos', src: 'games/kart-kaos.html' },
     'regnekanonen': { name: 'Regnekanonen', src: 'games/regnekanonen.html' },
+    'spike-lane': { name: 'Spike Lane', src: 'games/spike-lane.html' },
     'tumult': { name: 'Tumult', src: 'https://viso-collab.github.io/tumult/' },   // always the newest version, with online
   };
   const home = document.getElementById('home'), player = document.getElementById('player');
@@ -377,7 +389,43 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
     for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + t, r1 = (10 + pulse * 6) * k, r2 = (20 + pulse * 12) * k; g.beginPath(); g.moveTo(W * .5 + Math.cos(a) * r1, top - 30 * k + Math.sin(a) * r1); g.lineTo(W * .5 + Math.cos(a) * r2, top - 30 * k + Math.sin(a) * r2); g.stroke(); }
     g.globalCompositeOperation = 'source-over';
   }
-  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart, regne: drawRegne, tumult: drawTumult };
+  function drawSpike(c, t) {
+    const [g, W, H] = fit(c);
+    const hor = H * .42, cx = W / 2, F = 7;
+    const sky = g.createLinearGradient(0, 0, 0, hor); sky.addColorStop(0, '#1b1033'); sky.addColorStop(1, '#6e2459');
+    g.fillStyle = sky; g.fillRect(0, 0, W, hor + 1);
+    const r = H * .2, sg = g.createLinearGradient(0, hor - r, 0, hor);
+    sg.addColorStop(0, '#ffc65c'); sg.addColorStop(1, '#ff5fa8');
+    g.save(); g.beginPath(); g.rect(0, 0, W, hor); g.clip();
+    g.fillStyle = sg; g.beginPath(); g.arc(cx, hor, r, 0, 6.28); g.fill();
+    g.fillStyle = '#6e2459'; for (let i = 0; i < 5; i++) g.fillRect(cx - r, hor - r * (.7 - i * .15), r * 2, 1.5 + i);
+    g.restore();
+    g.fillStyle = '#120a22'; g.fillRect(0, hor, W, H - hor);
+    const half = Math.min(W * .46, H * .5), P = (l, z) => { const p = F / (z + F); return [cx + l * half * 2 / 3 * p, hor + (H * 1.02 - hor) * p, p]; };
+    const [a1, b1] = P(-1.5, 300), [a2] = P(1.5, 300), [a3, b3] = P(1.5, -6), [a4] = P(-1.5, -6);
+    g.fillStyle = '#22143a'; g.beginPath(); g.moveTo(a1, b1); g.lineTo(a2, b1); g.lineTo(a3, b3); g.lineTo(a4, b3); g.fill();
+    g.strokeStyle = '#ff6fb5'; g.lineWidth = 2;
+    for (const l of [-1.5, 1.5]) { const [x1, y1] = P(l, 300), [x2, y2] = P(l, -6); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+    const scroll = (reduce ? 0 : t * 10) % 24;
+    const rows = [[-1, 0], [1], [0, 1], [-1]];
+    rows.forEach((lanes, i) => {
+      const z = ((i * 6 - scroll) % 24 + 24) % 24 + 2;
+      for (const l of lanes) {
+        const [x, y, p] = P(l, z), lw = half * 2 / 3 * p, w = lw * .88 / 3, h = lw * .75;
+        for (let k = 0; k < 3; k++) {
+          const lx = x - lw * .44 + k * w;
+          g.fillStyle = '#d9861a'; g.beginPath(); g.moveTo(lx, y); g.lineTo(lx + w / 2, y - h); g.lineTo(lx + w / 2, y); g.fill();
+          g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(lx + w / 2, y); g.lineTo(lx + w / 2, y - h); g.lineTo(lx + w, y); g.fill();
+        }
+      }
+    });
+    const lane = Math.sin(t * 1.3) > .2 ? 1 : Math.sin(t * 1.3) < -.2 ? -1 : 0;
+    const [px, py, pp] = P(lane * .9, 1.2), s = half * 2 / 3 * pp * .45;
+    g.fillStyle = 'rgba(0,0,0,.4)'; g.beginPath(); g.ellipse(px, py, s * .6, s * .13, 0, 0, 6.28); g.fill();
+    g.fillStyle = '#3ee6e0'; g.fillRect(px - s / 2, py - s, s, s);
+    g.fillStyle = '#14092a'; g.fillRect(px - s * .27, py - s * .67, s * .15, s * .22); g.fillRect(px + s * .12, py - s * .67, s * .15, s * .22);
+  }
+  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart, regne: drawRegne, tumult: drawTumult, spike: drawSpike };
   function frameArt(now) {
     const t = (now - t0) / 1000;
     for (const c of arts) { try { DRAW[c.dataset.art](c, reduce ? 1 : t); } catch (e) {} }

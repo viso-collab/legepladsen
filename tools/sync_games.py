@@ -2,7 +2,7 @@
 """Henter de nyeste versioner af spillene fra deres egne repos ind i games/.
 
 Musefelt har ikke sit eget repo og ligger kun her. Regnekanonen ligger i
-gangetabel-kanonen. Piggy Smash hedder
+gangetabel-kanonen og Spike Lane i spike-lane. Piggy Smash hedder
 Splinter Gulch i sit eget repo og omdøbes, når den kopieres hertil.
 
 Brug:  python3 tools/sync_games.py            (repo-versionen, med online og leaderboard)
@@ -57,16 +57,19 @@ def main():
     pig = piggy_smash(fetch("splinter-gulch"))
     kart = fetch("kaos-karts")
     regne = fetch("gangetabel-kanonen")
+    spike = fetch("spike-lane")
     (games / "piggy-smash.html").write_text(pig, encoding="utf-8")
     (games / "kart-kaos.html").write_text(kart, encoding="utf-8")
     (games / "regnekanonen.html").write_text(regne, encoding="utf-8")
-    print("Opdaterede games/piggy-smash.html, games/kart-kaos.html og games/regnekanonen.html")
+    (games / "spike-lane.html").write_text(spike, encoding="utf-8")
+    print("Opdaterede games/piggy-smash.html, games/kart-kaos.html, games/regnekanonen.html og games/spike-lane.html")
     if "--artifact" in sys.argv:
         out = Path(sys.argv[sys.argv.index("--artifact") + 1])
         (out / "games").mkdir(parents=True, exist_ok=True)
         (out / "games" / "piggy-smash.html").write_text(pig, encoding="utf-8")
         (out / "games" / "kart-kaos.html").write_text(kart_kaos_for_artifact(kart), encoding="utf-8")
         (out / "games" / "regnekanonen.html").write_text(regne, encoding="utf-8")
+        (out / "games" / "spike-lane.html").write_text(spike, encoding="utf-8")
         print(f"Artefakt-udgaver skrevet til {out}/games")
 
 

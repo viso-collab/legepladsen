@@ -1,6 +1,6 @@
 # Legepladsen
 
-Fem små browserspil samlet på én side.
+Seks små browserspil samlet på én side.
 
 | Spil | Fil | Styring |
 |---|---|---|
@@ -8,6 +8,7 @@ Fem små browserspil samlet på én side.
 | **Piggy Smash**: smash sparegrise, find våben i kister og byg et skill tree (på engelsk) | `games/piggy-smash.html` | Mus eller touch |
 | **Kart Kaos**: arenakamp i 3D-karts mod bots eller online, med leaderboard | `games/kart-kaos.html` | Tastatur |
 | **Regnekanonen**: skyd kuglen med det rigtige svar i 20 levels plus, minus og lidt gange, med uglen Professor Hu (7–8 år) | `games/regnekanonen.html` | Mus eller touch |
+| **Spike Lane**: løbespil med tre baner, hvor du undviger spikes og samler mønter til skins og baggrunde | `games/spike-lane.html` | Tastatur eller touch |
 | **Tumult**: platform-kampspil med 8 figurer, 1v1 og 2v2, mod CPU eller online (på engelsk) | [viso-collab.github.io/tumult](https://viso-collab.github.io/tumult/) | Tastatur eller controller |
 
 ## Kør lokalt
@@ -22,7 +23,7 @@ python3 -m http.server 8000
 
 ## Opdatér spillene
 
-Piggy Smash, Kart Kaos og Regnekanonen udvikles i deres egne repos ([splinter-gulch](https://github.com/viso-collab/splinter-gulch), [kaos-karts](https://github.com/viso-collab/kaos-karts) og [gangetabel-kanonen](https://github.com/viso-collab/gangetabel-kanonen)). Hent de nyeste versioner hertil med:
+Piggy Smash, Kart Kaos, Regnekanonen og Spike Lane udvikles i deres egne repos ([splinter-gulch](https://github.com/viso-collab/splinter-gulch), [kaos-karts](https://github.com/viso-collab/kaos-karts), [gangetabel-kanonen](https://github.com/viso-collab/gangetabel-kanonen) og [spike-lane](https://github.com/viso-collab/spike-lane)). Hent de nyeste versioner hertil med:
 
 ```sh
 python3 tools/sync_games.py
