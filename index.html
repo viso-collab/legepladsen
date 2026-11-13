@@ -67,6 +67,9 @@ h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
 .t-regne { --t-bg: #2a2160; --t-fg: #fff8ec; }
 .t-regne .name { font-family: "Cherry Swash", Georgia, serif; font-weight: 700; color: #ffd23f; text-shadow: 0 2px 0 #8a3a00; }
 .t-regne .tags i { background: rgba(255,210,63,.16); }
+.t-tumult { --t-bg: #1b1640; --t-fg: #f1efff; }
+.t-tumult .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffb627; text-shadow: 2px 2px 0 #140e1e; }
+.t-tumult .tags i { background: rgba(76,201,240,.18); }
 .t-kart .name { font-family: "Bungee", "Arial Black", sans-serif; color: #ffd23f; text-shadow: 2px 2px 0 #ff3d6e; }
 
 footer { text-align: center; color: var(--muted); font-size: 13px; }
@@ -98,7 +101,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
 <main class="home" id="home">
   <header>
     <h1 aria-label="Legepladsen"><span>Le</span><span>ge</span><span>plad</span><span>sen</span></h1>
-    <p class="lead">Fire små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
+    <p class="lead">Fem små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
   </header>
   <section class="grid" aria-label="Spil">
     <button class="tile t-mouse" type="button" data-game="musefelt">
@@ -133,6 +136,14 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
         <span class="tags"><i>Mus eller touch</i><i>7–8 år</i><i>20 levels</i><i>Butik</i></span>
       </span>
     </button>
+    <button class="tile t-tumult" type="button" data-game="tumult">
+      <span class="art"><canvas data-art="tumult" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Tumult</span>
+        <span class="desc">Platform-kampspil med 8 figurer, combos og magi. Spil 1 mod 1 eller 2 mod 2 på svævende øer, mod CPU eller vennerne. På engelsk.</span>
+        <span class="tags"><i>Tastatur eller controller</i><i>8 figurer</i><i>Online</i><i>2v2</i></span>
+      </span>
+    </button>
   </section>
   <footer>Tryk på et spil for at åbne det. Tilbage-knappen øverst fører dig hertil igen.</footer>
 </main>
@@ -143,7 +154,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
     <b id="gameName"></b>
     <nav class="next" id="switcher" aria-label="Skift spil"></nav>
   </div>
-  <iframe id="frame" title="Spil" allow="fullscreen; autoplay"></iframe>
+  <iframe id="frame" title="Spil" allow="fullscreen; autoplay; gamepad"></iframe>
 </div>
 
 <script>
@@ -153,6 +164,7 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
     'piggy-smash': { name: 'Piggy Smash', src: 'games/piggy-smash.html' },
     'kart-kaos': { name: 'Kart Kaos', src: 'games/kart-kaos.html' },
     'regnekanonen': { name: 'Regnekanonen', src: 'games/regnekanonen.html' },
+    'tumult': { name: 'Tumult', src: 'https://viso-collab.github.io/tumult/' },   // always the newest version, with online
   };
   const home = document.getElementById('home'), player = document.getElementById('player');
   const frame = document.getElementById('frame'), nameEl = document.getElementById('gameName');
@@ -292,7 +304,36 @@ footer { text-align: center; color: var(--muted); font-size: 13px; }
     g.save(); g.translate(cx, 0); g.rotate(ang); g.fillStyle = '#c7d3e3'; g.fillRect(0, -7 * k, 30 * k, 14 * k); g.restore();
     g.fillStyle = '#5b6b82'; g.beginPath(); g.arc(cx, 0, 14 * k, 0, 6.28); g.fill();
   }
-  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart, regne: drawRegne };
+  function drawTumult(c, t) {
+    const [g, W, H] = fit(c);
+    const sky = g.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#2c2a5c'); sky.addColorStop(.55, '#b85d7d'); sky.addColorStop(1, '#f2a46a');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    const sun = g.createRadialGradient(W * .5, H * .62, 2, W * .5, H * .62, H * .45); sun.addColorStop(0, 'rgba(255,230,180,.9)'); sun.addColorStop(1, 'rgba(255,200,150,0)');
+    g.fillStyle = sun; g.fillRect(0, 0, W, H);
+    const k = Math.min(W, H) / 200, top = H * .66;
+    g.fillStyle = '#6b6aa0'; g.beginPath(); g.moveTo(W * .14, top); g.lineTo(W * .86, top); g.lineTo(W * .62, top + 52 * k); g.lineTo(W * .5, top + 70 * k); g.lineTo(W * .38, top + 52 * k); g.closePath(); g.fill();
+    g.fillStyle = '#8fae6a'; g.fillRect(W * .13, top - 5 * k, W * .74, 8 * k);
+    g.fillStyle = '#a39b8c'; [[.24, .44], [.62, .44]].forEach(([x, y]) => g.fillRect(W * x, H * y, W * .16, 5 * k));
+    g.fillRect(W * .43 + Math.sin(t * .8) * W * .12, H * .24, W * .14, 5 * k);
+    const fighter = (x, dir, col, h) => {
+      g.save(); g.translate(x, top - 3 * k); g.scale(dir * k, k);
+      g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(0, 3, 14, 3, 0, 0, 6.28); g.fill();
+      g.fillStyle = col; g.beginPath(); g.ellipse(0, -h * .4, 10, h * .42, 0, 0, 6.28); g.fill();
+      g.beginPath(); g.arc(3, -h * .92, 8, 0, 6.28); g.fill(); g.restore();
+    };
+    const sway = reduce ? 0 : Math.sin(t * 3) * 6 * k;
+    fighter(W * .4 + sway, 1, '#3d2b63', 46);
+    fighter(W * .6 - sway, -1, '#c9714c', 54);
+    const pulse = .5 + .5 * Math.sin(t * 6);
+    g.globalCompositeOperation = 'lighter';
+    const hit = g.createRadialGradient(W * .5, top - 30 * k, 0, W * .5, top - 30 * k, (18 + pulse * 14) * k);
+    hit.addColorStop(0, 'rgba(255,240,190,.95)'); hit.addColorStop(1, 'rgba(255,170,60,0)');
+    g.fillStyle = hit; g.beginPath(); g.arc(W * .5, top - 30 * k, (18 + pulse * 14) * k, 0, 6.28); g.fill();
+    g.strokeStyle = 'rgba(255,230,160,.9)'; g.lineWidth = 2 * k;
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.28 + t, r1 = (10 + pulse * 6) * k, r2 = (20 + pulse * 12) * k; g.beginPath(); g.moveTo(W * .5 + Math.cos(a) * r1, top - 30 * k + Math.sin(a) * r1); g.lineTo(W * .5 + Math.cos(a) * r2, top - 30 * k + Math.sin(a) * r2); g.stroke(); }
+    g.globalCompositeOperation = 'source-over';
+  }
+  const DRAW = { mouse: drawMouse, pig: drawPig, kart: drawKart, regne: drawRegne, tumult: drawTumult };
   function frameArt(now) {
     const t = (now - t0) / 1000;
     for (const c of arts) { try { DRAW[c.dataset.art](c, reduce ? 1 : t); } catch (e) {} }
