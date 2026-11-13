@@ -135,7 +135,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     <div class="shop" id="shop" hidden></div>
   </div>
   <div class="chips" id="chips"></div>
-  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Hopper kuglen på en væg, før den rammer rigtigt, får du 25 bonuspoint for et bandeskud. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
+  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Fra level 3 er der forhindringer, som svarkuglerne kan gemme sig bag. Din kugle hopper af dem. Hopper kuglen på en væg eller en forhindring, før den rammer rigtigt, får du 25 bonuspoint for et bandeskud. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
 </div>
 
 <script>
@@ -176,6 +176,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   const sym = op => op === "-" ? "−" : op;
   const ptext = p => `${p.a} ${sym(p.op)} ${p.b}`;
   const NEW_OP = {
+    3: "Pas på! Nu er der forhindringer. Svarkuglerne kan gemme sig bag dem, og din kugle hopper af dem.",
     4: "Nu kommer minus! Når man trækker fra, bliver tallet mindre.",
     7: "Tiervenner! To tal, der tilsammen giver 10.",
     9: "Nu går vi over 10. Tip: lav 10 først, og læg resten til.",
@@ -192,7 +193,32 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   let timeScale = 1, zoom = { x: CX, y: H / 2, z: 1, target: 1 }, hover = -1, clearT = 0, clearQueue = [], fireworkT = 0;
   let power = 0, rings = [], shake = 0, beams = [], pt = 0;
   const SHOT_SPEED = 950, LANES = [250, 370, 490], LANE_X0 = BX0 + PEG_R + 4, LANE_W = (BX1 - BX0) - 2 * PEG_R - 8, PEG_D = 2 * PEG_R + 4;
-  let lanes = [];
+  let lanes = [], obstacles = [];
+  const OB_W = 150, OB_H = 100;
+  const obstacleCount = () => level < 3 ? 0 : level < 8 ? 1 : 2;
+  // the obstacle every shot can hit: side walls, a ceiling and the bushes (expanded by the ball radius)
+  function rayCast(sx, sy, dx, dy) {
+    let best = { t: Infinity, nx: 0, ny: 0 };
+    if (dx > .001) { const t = (BX1 - BALL_R - sx) / dx; if (t > 0 && t < best.t) best = { t, nx: -1, ny: 0, wall: true }; }
+    if (dx < -.001) { const t = (BX0 + BALL_R - sx) / dx; if (t > 0 && t < best.t) best = { t, nx: 1, ny: 0, wall: true }; }
+    if (dy < -.001) { const t = (20 - sy) / dy; if (t > 0 && t < best.t) best = { t, nx: 0, ny: 1, wall: true }; }
+    for (const o of obstacles) {
+      const x0 = o.x - o.w / 2 - BALL_R, x1 = o.x + o.w / 2 + BALL_R, y0 = o.y - o.h / 2 - BALL_R, y1 = o.y + o.h / 2 + BALL_R;
+      const ax = Math.abs(dx) > 1e-6 ? [(x0 - sx) / dx, (x1 - sx) / dx] : [-Infinity, Infinity];
+      const ay = Math.abs(dy) > 1e-6 ? [(y0 - sy) / dy, (y1 - sy) / dy] : [-Infinity, Infinity];
+      const txn = Math.min(...ax), tyn = Math.min(...ay), tmin = Math.max(txn, tyn), tmax = Math.min(Math.max(...ax), Math.max(...ay));
+      if (tmax >= tmin && tmin > 0 && tmin < best.t) best = txn > tyn ? { t: tmin, nx: -Math.sign(dx), ny: 0 } : { t: tmin, nx: 0, ny: -Math.sign(dy) };
+    }
+    return best;
+  }
+  function placeObstacles() {
+    obstacles = [];
+    for (let n = obstacleCount(), tries = 0; obstacles.length < n && tries < 200; tries++) {
+      const o = { x: BX0 + 140 + Math.random() * (BX1 - BX0 - 280), y: LANES[Math.random() * LANES.length | 0], w: OB_W, h: OB_H, seed: Math.random() * 100, hitT: 0 };
+      if (Math.abs(o.x - CX) < 90 && o.y === LANES[0]) continue; // keep the straight-down shot open
+      if (obstacles.every(q => Math.abs(q.x - o.x) > 300 || q.y !== o.y)) obstacles.push(o);
+    }
+  }
   const laneSpeed = () => 34 + (level - 1) * 4.5;
   const owl = { mood: "idle", moodT: 0, blinkT: 2, hop: 0, lookX: 0, lookY: 0 };
   let speech = { text: "", t: 0 };
@@ -400,6 +426,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       lanes.push(L); pegs.push(...members);
     });
     pegs.forEach(p => placePeg(p, 0));
+    placeObstacles();
     phase = "play";
     renderChips();
     tone(440, .12, "triangle", .12, 1.5);
@@ -534,6 +561,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
 
     pt += dt;
     refreshLanes(pt);
+    for (const o of obstacles) o.hitT = Math.max(0, o.hitT - dt);
     for (const p of pegs) {
       const ox = p.x;
       placePeg(p, pt);
@@ -559,12 +587,28 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     if (shot) {
       shot.trail.push(shot.x, shot.y); if (shot.trail.length > 40) shot.trail.splice(0, 2);
       shot.x += shot.vx * dt; shot.y += shot.vy * dt;
-      const wall = shot.x < BX0 + BALL_R ? -1 : shot.x > BX1 - BALL_R ? 1 : 0;
-      if (wall) {
-        shot.x = wall < 0 ? BX0 + BALL_R : BX1 - BALL_R; shot.vx = -wall * Math.abs(shot.vx); shot.bounces++;
-        tone(700 + shot.bounces * 200, .08, "triangle", .12); burst(shot.x, shot.y, "#7ef0ff", 12, 160);
+      let bounced = false;
+      if (shot.x < BX0 + BALL_R) { shot.x = BX0 + BALL_R; shot.vx = Math.abs(shot.vx); bounced = true; }
+      if (shot.x > BX1 - BALL_R) { shot.x = BX1 - BALL_R; shot.vx = -Math.abs(shot.vx); bounced = true; }
+      if (shot.y < 20) { shot.y = 20; shot.vy = Math.abs(shot.vy); bounced = true; }
+      for (const o of obstacles) {
+        const x0 = o.x - o.w / 2 - BALL_R, x1 = o.x + o.w / 2 + BALL_R, y0 = o.y - o.h / 2 - BALL_R, y1 = o.y + o.h / 2 + BALL_R;
+        if (shot.x <= x0 || shot.x >= x1 || shot.y <= y0 || shot.y >= y1) continue;
+        // push out through the face the ball is moving into with the least overlap
+        const faces = [];
+        if (shot.vx > 0) faces.push([shot.x - x0, "l"]); if (shot.vx < 0) faces.push([x1 - shot.x, "r"]);
+        if (shot.vy > 0) faces.push([shot.y - y0, "t"]); if (shot.vy < 0) faces.push([y1 - shot.y, "b"]);
+        const f = faces.sort((a, b) => a[0] - b[0])[0][1];
+        if (f === "l") { shot.x = x0; shot.vx = -Math.abs(shot.vx); } if (f === "r") { shot.x = x1; shot.vx = Math.abs(shot.vx); }
+        if (f === "t") { shot.y = y0; shot.vy = -Math.abs(shot.vy); } if (f === "b") { shot.y = y1; shot.vy = Math.abs(shot.vy); }
+        o.hitT = .35; bounced = true;
+      }
+      if (bounced) {
+        shot.bounces++;
+        tone(700 + Math.min(shot.bounces, 5) * 200, .08, "triangle", .12); burst(shot.x, shot.y, "#7ef0ff", 12, 160);
         rings.push({ x: shot.x, y: shot.y, t: .55 });
       }
+      if (shot.bounces > 7) shot.y = BUCKET_Y; // stuck ping-ponging: count it as a miss
       const hit = pegs.find(p => hittable(p) && Math.hypot(p.x - shot.x, p.y - shot.y) < PEG_R + BALL_R);
       if (hit) resolve(hit);
       else if (shot.y > BUCKET_Y - 10) {
@@ -1204,6 +1248,39 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     });
   }
 
+  // themed obstacles the answer balls slide behind: bush, coral rock, candy cloud, asteroid
+  const OB_STYLE = { nat: ["bush", "#3f7f52"], jungle: ["bush", "#2f9e44"], hav: ["rock", "#e0705f"], slik: ["cloud", "#ffd3ec"], rum: ["rock", "#6e6796"] };
+  function drawObstacle(o) {
+    const [kind, col] = OB_STYLE[save.eq.theme] || OB_STYLE.nat;
+    const wob = o.hitT > 0 ? Math.sin(time * 50) * 4 * (o.hitT / .35) : 0;
+    ctx.save(); ctx.translate(o.x + wob, o.y);
+    ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(4, o.h / 2 - 2, o.w / 2 + 4, 12, 0, 0, 6.28); ctx.fill();
+    if (kind === "rock") {
+      const g = ctx.createLinearGradient(0, -o.h / 2, 0, o.h / 2); g.addColorStop(0, shade(col, .3)); g.addColorStop(1, shade(col, -.35));
+      ctx.fillStyle = g; ctx.strokeStyle = shade(col, -.55); ctx.lineWidth = 4;
+      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-o.w / 2, -o.h / 2, o.w, o.h, 34); else ctx.rect(-o.w / 2, -o.h / 2, o.w, o.h); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = shade(col, -.25);
+      [[-34, -12, 13], [22, 10, 16], [40, -22, 8], [-12, 24, 9]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill(); });
+      ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.ellipse(-20, -o.h / 2 + 16, 34, 8, -.1, 0, 6.28); ctx.fill();
+    } else {
+      // bush / cloud: a lumpy blob of circles filling the box
+      const blobs = [[-50, 12, 30], [-22, -18, 34], [16, -24, 34], [48, -2, 30], [30, 22, 28], [-14, 20, 32], [52, 24, 22], [-56, 30, 20]];
+      ctx.fillStyle = shade(col, kind === "cloud" ? -.18 : -.45);
+      blobs.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y + 3, r + 4, 0, 6.28); ctx.fill(); });
+      const g = ctx.createLinearGradient(0, -o.h / 2, 0, o.h / 2); g.addColorStop(0, shade(col, .25)); g.addColorStop(1, shade(col, -.2));
+      ctx.fillStyle = g; blobs.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill(); });
+      ctx.fillStyle = kind === "cloud" ? "rgba(255,255,255,.7)" : "rgba(255,255,255,.18)";
+      [[-22, -26, 12], [16, -32, 11], [48, -10, 8]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.ellipse(x, y, r, r * .6, -.3, 0, 6.28); ctx.fill(); });
+      if (kind === "bush") {
+        ctx.fillStyle = "#ff6fa8"; [[-36, 0], [8, -8], [40, 14], [-8, 30]].forEach(([x, y], i) => { ctx.beginPath(); ctx.arc(x + Math.sin(o.seed + i) * 6, y, 5, 0, 6.28); ctx.fill(); });
+        ctx.fillStyle = "#ffe066"; [[-36, 0], [8, -8], [40, 14], [-8, 30]].forEach(([x, y], i) => { ctx.beginPath(); ctx.arc(x + Math.sin(o.seed + i) * 6, y, 2, 0, 6.28); ctx.fill(); });
+      } else {
+        ctx.fillStyle = "#ff4d6d"; [[-30, 4], [20, 14], [44, -6]].forEach(([x, y]) => ctx.fillRect(x, y, 9, 3));
+        ctx.fillStyle = "#3ee6c4"; [[-6, -10], [30, 28], [-44, 26]].forEach(([x, y]) => ctx.fillRect(x, y, 9, 3));
+      }
+    }
+    ctx.restore();
+  }
   function drawPeg(p, th) {
     if (!p.alive) return;
     const s = Math.min(1, Math.max(0, p.appear * 4));
@@ -1413,26 +1490,28 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       drawSigns();
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       for (const p of pegs) drawPeg(p, th);
+      for (const o of obstacles) drawObstacle(o);
       drawBucket();
       if (phase === "play" && !shopOpen) {
-        // aim guide: dots out of the barrel; if the shot reaches a side wall on the board, dots run to the wall
-        // and a short golden line shows which way the ball will bounce
+        // aim guide: dots out of the barrel up to the first wall or bush it will bounce off,
+        // then a short light-blue line showing which way the ball will bounce
         const dx = Math.cos(angle), dy = Math.sin(angle), sx = CX + dx * MUZZLE, sy = CY - 8 + dy * MUZZLE;
-        const wx = dx > 0 ? BX1 - BALL_R : BX0 + BALL_R, tw = Math.abs(dx) > .01 ? (wx - sx) / dx : 1e9, hy = sy + dy * tw;
-        const toWall = hy < BUCKET_Y - 40, len = toWall ? tw : 240, step = 26, off = (time * 40) % step;
+        const hit = rayCast(sx, sy, dx, dy), hx = sx + dx * hit.t, hy = sy + dy * hit.t;
+        const toWall = hy < BUCKET_Y - 40, len = toWall ? hit.t : 240, step = 26, off = (time * 40) % step;
         ctx.fillStyle = "#ffffff";
         for (let d = 14 + off; d < len; d += step) {
           ctx.globalAlpha = toWall ? .75 : .85 * (1 - d / len);
           ctx.beginPath(); ctx.arc(sx + dx * d, sy + dy * d, toWall ? 3.6 : 4.5 - d / len * 2.4, 0, 6.28); ctx.fill();
         }
         if (toWall) {
+          const rx = hit.nx ? -dx : dx, ry = hit.ny ? -dy : dy;
           ctx.globalAlpha = 1;
           ctx.strokeStyle = "#7ef0ff"; ctx.lineWidth = 3; ctx.shadowColor = "#7ef0ff"; ctx.shadowBlur = 10;
-          ctx.beginPath(); ctx.arc(wx, hy, 9 + Math.sin(time * 6) * 2, 0, 6.28); ctx.stroke();
-          const ex = wx - dx * 130, ey = hy + dy * 130;
-          const lg = ctx.createLinearGradient(wx, hy, ex, ey); lg.addColorStop(0, "rgba(126,240,255,.95)"); lg.addColorStop(1, "rgba(126,240,255,0)");
+          ctx.beginPath(); ctx.arc(hx, hy, 9 + Math.sin(time * 6) * 2, 0, 6.28); ctx.stroke();
+          const ex = hx + rx * 130, ey = hy + ry * 130;
+          const lg = ctx.createLinearGradient(hx, hy, ex, ey); lg.addColorStop(0, "rgba(126,240,255,.95)"); lg.addColorStop(1, "rgba(126,240,255,0)");
           ctx.strokeStyle = lg; ctx.lineWidth = 4; ctx.setLineDash([10, 7]); ctx.lineDashOffset = -time * 30;
-          ctx.beginPath(); ctx.moveTo(wx, hy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur = 0;
+          ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur = 0;
         }
         ctx.globalAlpha = 1;
       }
@@ -1507,7 +1586,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     requestAnimationFrame(loop);
   }
 
-  window.__gk = { get pegs() { return pegs; }, get angle() { return angle; }, get score() { return score; }, get pt() { return pt; }, set angle(v) { angle = v; }, pegXAt, shoot, aimAt, get phase() { return phase; }, get power() { return power; }, get mistakes() { return mistakes; }, get level() { return level; }, get prob() { return prob; }, fire, useOwlPower, startLevel };
+  window.__gk = { get pegs() { return pegs; }, get angle() { return angle; }, get score() { return score; }, get pt() { return pt; }, get obstacles() { return obstacles; }, set angle(v) { angle = v; }, pegXAt, shoot, aimAt, get phase() { return phase; }, get power() { return power; }, get mistakes() { return mistakes; }, get level() { return level; }, get prob() { return prob; }, fire, useOwlPower, startLevel };
 
   let started = false;
   function start(data) {
