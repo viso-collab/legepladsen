@@ -9,7 +9,7 @@ Seks små browserspil samlet på én side.
 | **Kart Kaos**: arenakamp i 3D-karts mod bots eller online, med leaderboard | `games/kart-kaos.html` | Tastatur |
 | **Regnekanonen**: skyd kuglen med det rigtige svar i 20 levels plus, minus og lidt gange, med uglen Professor Hu (7–8 år) | `games/regnekanonen.html` | Mus eller touch |
 | **Spike Lane**: løbespil med tre baner, hvor du undviger spikes og samler mønter til skins og baggrunde | `games/spike-lane.html` | Tastatur eller touch |
-| **Tumult**: platform-kampspil med 8 figurer, 1v1 og 2v2, mod CPU eller online (på engelsk) | [viso-collab.github.io/tumult](https://viso-collab.github.io/tumult/) | Tastatur eller controller |
+| **Tumult**: platform-kampspil med 12 figurer, 1v1 og 2v2, mod CPU eller online (på engelsk) | [viso-collab.github.io/tumult](https://viso-collab.github.io/tumult/) | Tastatur eller controller |
 
 ## Kør lokalt
 
