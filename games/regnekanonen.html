@@ -130,12 +130,12 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   </div>
   <div class="levels" id="levels" role="group" aria-label="Vælg level"><span>Level</span></div>
   <div class="stage">
-    <canvas id="c" width="1100" height="660" aria-label="Spillebane med svarkugler. Klik på kuglen med det rigtige svar. Piletaster vælger en kugle, Enter skyder, U bruger Uglesyn."></canvas>
+    <canvas id="c" width="1100" height="660" aria-label="Spillebane med svarkugler. Sigt med musen og klik for at skyde. Piletaster drejer kanonen, Enter skyder, U bruger Uglesyn."></canvas>
     <div class="ov" id="ov" hidden></div>
     <div class="shop" id="shop" hidden></div>
   </div>
   <div class="chips" id="chips"></div>
-  <p class="help">Klik på kuglen med det rigtige svar, så skyder kanonen på den. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
+  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
 </div>
 
 <script>
@@ -190,7 +190,9 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   let pegs = [], shot = null, fallers = [], streak = 0, mistakes = 0, score = 0;
   let particles = [], floats = [], phase = "play", angle = Math.PI / 2, time = 0, betweenT = 0, signPop = 1;
   let timeScale = 1, zoom = { x: CX, y: H / 2, z: 1, target: 1 }, hover = -1, clearT = 0, clearQueue = [], fireworkT = 0;
-  let power = 0, rings = [], shake = 0, beams = [];
+  let power = 0, rings = [], shake = 0, beams = [], pt = 0;
+  const SHOT_SPEED = 950, LANES = [250, 370, 490], SPAN = (BX1 - BX0) + 2 * PEG_R + 16;
+  const laneSpeed = () => 34 + (level - 1) * 4.5;
   const owl = { mood: "idle", moodT: 0, blinkT: 2, hop: 0, lookX: 0, lookY: 0 };
   let speech = { text: "", t: 0 };
   let best = {};
@@ -335,17 +337,10 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     let k = 4; while (out.size < 4) { const v = a + k++; if (v !== a) out.add(v); }
     return [...out];
   }
-  function scatter(n) {
-    for (let attempt = 0; attempt < 50; attempt++) {
-      const pts = [];
-      for (let tries = 0; tries < 2000 && pts.length < n; tries++) {
-        const x = BX0 + 70 + Math.random() * (BX1 - BX0 - 140), y = 230 + Math.random() * 300;
-        if (pts.every(([px, py]) => Math.hypot(px - x, py - y) > 2 * PEG_R + 60)) pts.push([x, y]);
-      }
-      if (pts.length === n) return pts;
-    }
-    return Array.from({ length: n }, (_, i) => [BX0 + 110 + i * 150, 380]);
-  }
+  const pegXAt = (p, t) => BX0 - PEG_R - 8 + ((((p.off + p.vel * t) % SPAN) + SPAN) % SPAN);
+  function placePeg(p, t) { if (!p.lit) { p.x = pegXAt(p, t); p.y = p.lane + Math.sin(t * 1.6 + p.off) * 6; } }
+  const MUZZLE = 46;
+  const clampAngle = a => Math.max(.22, Math.min(Math.PI - .22, a));
   function startLevel(n) {
     level = n;
     probs = shuffle(LEVELS[n - 1].map(([a, op, b]) => ({ a, op, b, ans: calc(a, op, b) })));
@@ -353,15 +348,25 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     shot = null; fallers = []; particles = []; floats = []; timeScale = 1; zoom.target = 1; zoom.z = 1; hover = -1; clearQueue = [];
     $("ov").hidden = true;
     spawnProblem();
-    say(NEW_OP[n] || (n === 1 ? "Hu-hu! Jeg er Professor Hu. Skyd kuglen med det rigtige svar på regnestykket!" : `Level ${n}! Tre regnestykker venter. Du kan godt!`), 6);
+    say(NEW_OP[n] || (n === 1 ? "Hu-hu! Jeg er Professor Hu. Sigt med musen, og klik for at skyde kuglen med det rigtige svar!" : `Level ${n}! Tre regnestykker venter. Du kan godt!`), 6);
     mood("happy", .8);
     renderLevels(); renderStats();
   }
   function spawnProblem() {
     prob = probs[pi];
     signPop = 0;
-    const opts = shuffle([prob.ans, ...distractors(prob)]), pos = scatter(5);
-    pegs = opts.map((v, i) => ({ x: pos[i][0], y: pos[i][1], v, ok: v === prob.ans, alive: true, lit: false, litT: 0, shake: 0, wrong: 0, dying: 0, appear: -.35 - i * .09 }));
+    const opts = shuffle([prob.ans, ...distractors(prob)]);
+    // moving targets: 5 balls on 3 horizontal lanes (2+2+1), lanes glide opposite ways and wrap around
+    const counts = shuffle([2, 2, 1]), dirs = Math.random() < .5 ? [1, -1, 1] : [-1, 1, -1];
+    let k = 0; pt = 0; pegs = [];
+    LANES.forEach((ly, li) => {
+      const n = counts[li], v = dirs[li] * laneSpeed() * (.85 + Math.random() * .3), base = Math.random() * SPAN;
+      for (let j = 0; j < n; j++, k++) {
+        const val = opts[k];
+        pegs.push({ lane: ly, vel: v, off: base + j * SPAN / n + (Math.random() - .5) * 60, x: 0, y: ly, v: val, ok: val === prob.ans, alive: true, lit: false, litT: 0, shake: 0, wrong: 0, dying: 0, appear: -.35 - k * .09 });
+      }
+    });
+    pegs.forEach(p => placePeg(p, 0));
     phase = "play";
     renderChips();
     tone(440, .12, "triangle", .12, 1.5);
@@ -373,21 +378,26 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     return [(ev.clientX - r.left) / r.width * W, (ev.clientY - r.top) / r.height * H];
   }
   const clickable = p => p.alive && !p.lit && !p.dying && p.appear > 0;
-  function pegAt(px, py) {
-    let bi = -1, bd = PEG_R + 10;
-    pegs.forEach((p, i) => { if (clickable(p)) { const d = Math.hypot(p.x - px, p.y - py); if (d < bd) { bd = d; bi = i; } } });
-    return bi;
-  }
   const onOwl = (px, py) => Math.hypot(px - OWL.x, py - OWL.y) < 80 || Math.hypot(px - OWL.x, py - 560) < 52;
-  function fire(i) {
-    const p = pegs[i];
-    if (phase !== "play" || shopOpen || !p || !clickable(p)) return;
+  const hittable = p => p.alive && !p.lit && !p.dying && p.appear > 0;
+  // shoot straight along the current cannon angle
+  function shoot() {
+    if (phase !== "play" || shopOpen) return;
     phase = "fly";
-    angle = Math.atan2(p.y - CY, p.x - CX);
-    shot = { x: CX + Math.cos(angle) * 46, y: CY + Math.sin(angle) * 46, peg: p, trail: [], final: p.ok && pi === probs.length - 1 };
+    shot = { x: CX + Math.cos(angle) * MUZZLE, y: CY - 8 + Math.sin(angle) * MUZZLE, vx: Math.cos(angle) * SHOT_SPEED, vy: Math.sin(angle) * SHOT_SPEED, trail: [] };
     tone(260, .15, "triangle", .18, 2.4);
-    burst(CX + Math.cos(angle) * 50, CY + Math.sin(angle) * 50, "#ffffff", 8, 120);
+    burst(shot.x, shot.y, "#ffffff", 8, 120);
   }
+  // aim with lead at a moving peg (used by tests and as a helper)
+  function aimAt(p) {
+    let tx = p.x, ty = p.y;
+    for (let k = 0; k < 4; k++) {
+      const t = Math.hypot(tx - CX, ty - CY + 8) / SHOT_SPEED;
+      tx = pegXAt(p, pt + t); ty = p.lane + Math.sin((pt + t) * 1.6 + p.off) * 6;
+    }
+    angle = clampAngle(Math.atan2(ty - CY + 8, tx - CX));
+  }
+  function fire(i) { const p = pegs[i]; if (!p || !hittable(p) || phase !== "play") return; aimAt(p); shoot(); }
   function useOwlPower(auto) {
     if (phase !== "play") return;
     if (power < POWER_MAX) { say(`Svar rigtigt ${POWER_MAX - power} gang${POWER_MAX - power > 1 ? "e" : ""} mere, så er min månekugle fuld.`, 3); return; }
@@ -396,7 +406,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     power = 0;
     // owl eyes shoot moonbeams at the wrong balls, which vanish when the beam lands
     wrongs.forEach((p, k) => {
-      beams.push({ x: p.x, y: p.y, t: -k * .18 });
+      beams.push({ peg: p, t: -k * .18 });
       setTimeout(() => { if (p.alive && !p.dying) { p.dying = .5; burst(p.x, p.y, "#fff3a0", 28, 240); tone(1300 + k * 300, .2, "sine", .1); } }, 380 + k * 180);
     });
     rings.push({ x: OWL.x, y: OWL.y, t: 0 }); shake = .25;
@@ -405,26 +415,24 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     [523, 784, 1047, 1568].forEach((f, i) => setTimeout(() => tone(f, .3, "sine", .12), i * 90));
     burst(OWL.x, OWL.y - 20, "#fff3a0", 30, 240);
   }
+  function aimToward(x, y) { if (phase === "play" || phase === "fly") { if (phase === "play") angle = clampAngle(Math.atan2(y - CY + 8, x - CX)); } }
   cv.addEventListener("pointermove", e => {
     const [x, y] = toLogical(e);
-    hover = pegAt(x, y);
-    cv.style.cursor = hover >= 0 || (onOwl(x, y) && power >= POWER_MAX) ? "pointer" : "default";
+    if (x > BX0) aimToward(x, y);
+    cv.style.cursor = x > BX0 ? "crosshair" : (onOwl(x, y) && power >= POWER_MAX) ? "pointer" : "default";
   });
-  cv.addEventListener("pointerleave", () => { hover = -1; });
+  cv.addEventListener("pointerdown", e => { const [x, y] = toLogical(e); if (x > BX0) aimToward(x, y); });
   cv.addEventListener("pointerup", e => {
     const [x, y] = toLogical(e);
-    const i = pegAt(x, y);
-    if (i >= 0) fire(i); else if (onOwl(x, y)) useOwlPower();
+    if (onOwl(x, y)) useOwlPower();
+    else if (x > BX0) { aimToward(x, y); shoot(); }
   });
   cv.tabIndex = 0;
   cv.addEventListener("keydown", e => {
     if (e.key === "u" || e.key === "U") { useOwlPower(); return; }
-    const live = pegs.map((p, i) => i).filter(i => clickable(pegs[i])).sort((a, b) => pegs[a].x - pegs[b].x);
-    if (!live.length) return;
-    const k = live.indexOf(hover);
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") { hover = live[(k + 1) % live.length]; e.preventDefault(); }
-    if (e.key === "ArrowLeft" || e.key === "ArrowUp") { hover = live[(k - 1 + live.length) % live.length]; e.preventDefault(); }
-    if ((e.key === "Enter" || e.key === " ") && hover >= 0) { fire(hover); e.preventDefault(); }
+    if (e.key === "ArrowLeft" || e.key === "ArrowDown") { if (phase === "play") angle = clampAngle(angle + .05); e.preventDefault(); }
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") { if (phase === "play") angle = clampAngle(angle - .05); e.preventDefault(); }
+    if (e.key === "Enter" || e.key === " ") { shoot(); e.preventDefault(); }
   });
 
   // ---------- effects ----------
@@ -453,7 +461,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       mood("happy");
       if (power < POWER_MAX) say(PRAISE[Math.random() * PRAISE.length | 0], 2.5);
       renderChips(); renderStats();
-      if (b.final) {
+      if (pi === probs.length - 1) {
         phase = "clear"; clearT = 0; fireworkT = 0; clearQueue = pegs.filter(q => q.alive && !q.ok);
         // big finale: golden shockwaves, board shake, confetti rain and a rainbow burst
         for (let k = 0; k < 3; k++) rings.push({ x: p.x, y: p.y, t: -k * .15 });
@@ -486,11 +494,13 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     owl.blinkT -= dt; if (owl.blinkT < -.14) owl.blinkT = 2 + Math.random() * 3;
     if (speech.t > 0) speech.t -= dt;
     let lx = 0, ly = 0;
-    const tgt = shot ? shot.peg : hover >= 0 ? pegs[hover] : null;
+    const tgt = shot || { x: CX + Math.cos(angle) * 320, y: CY + Math.sin(angle) * 320 };
     if (tgt) { const dx = tgt.x - OWL.x, dy = tgt.y - OWL.y, d = Math.hypot(dx, dy) || 1; lx = dx / d; ly = dy / d; }
     owl.lookX += (lx - owl.lookX) * .15; owl.lookY += (ly - owl.lookY) * .15;
 
+    pt += dt;
     for (const p of pegs) {
+      placePeg(p, pt);
       p.shake = Math.max(0, p.shake - dt); p.wrong = Math.max(0, p.wrong - dt); p.appear += dt;
       if (p.dying > 0 && p.alive) { p.dying -= dt; if (p.dying <= 0) { p.alive = false; burst(p.x, p.y, "#c9c2e8", 14, 140); } }
       if (p.lit && p.alive) { p.litT += dt; if (p.litT > .9) { p.alive = false; burst(p.x, p.y, "#ffcf4a", 22, 190); tone(1400 + Math.random() * 300, .05, "sine", .05); } }
@@ -502,12 +512,18 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       if (betweenT > 1.5) { pi++; spawnProblem(); }
     }
     if (shot) {
-      const p = shot.peg, dx = p.x - shot.x, dy = p.y - shot.y, d = Math.hypot(dx, dy), sp = 1100 * dt;
       shot.trail.push(shot.x, shot.y); if (shot.trail.length > 40) shot.trail.splice(0, 2);
-      if (d <= PEG_R + BALL_R + sp) {
-        const k = (PEG_R + BALL_R) / (d || 1);
-        shot.x = p.x - dx * k; shot.y = p.y - dy * k; resolve(p);
-      } else { shot.x += dx / d * sp; shot.y += dy / d * sp; }
+      shot.x += shot.vx * dt; shot.y += shot.vy * dt;
+      if (shot.x < BX0 + BALL_R) { shot.x = BX0 + BALL_R; shot.vx = Math.abs(shot.vx); tone(500, .04, "sine", .06); }
+      if (shot.x > BX1 - BALL_R) { shot.x = BX1 - BALL_R; shot.vx = -Math.abs(shot.vx); tone(500, .04, "sine", .06); }
+      const hit = pegs.find(p => hittable(p) && Math.hypot(p.x - shot.x, p.y - shot.y) < PEG_R + BALL_R);
+      if (hit) resolve(hit);
+      else if (shot.y > BUCKET_Y - 10) {
+        // missed every ball: no penalty, the ball drops on (maybe into the bucket)
+        fallers.push({ x: shot.x, y: shot.y, vx: shot.vx * .5, vy: shot.vy * .5, trail: [] });
+        shot = null; phase = "play"; streak = 0;
+        say(["Forbi! Kuglerne bevæger sig, så sigt lidt foran.", "Tæt på! Prøv igen.", "Forbi! Vent til kuglen kommer, og skyd så."][Math.random() * 3 | 0], 2.5);
+      }
     }
     const bx = bucketX();
     for (const f of fallers) {
@@ -1349,6 +1365,16 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       for (const p of pegs) drawPeg(p, th);
       drawBucket();
+      if (phase === "play" && !shopOpen) {
+        // dotted aim line out of the barrel
+        ctx.save(); ctx.translate(CX, CY - 8); ctx.rotate(angle);
+        for (let k = 0; k < 9; k++) {
+          const d = MUZZLE + 14 + k * 26 + (time * 40) % 26;
+          ctx.globalAlpha = .85 * (1 - k / 9); ctx.fillStyle = "#ffffff";
+          ctx.beginPath(); ctx.arc(d, 0, 4.5 - k * .3, 0, 6.28); ctx.fill();
+        }
+        ctx.globalAlpha = 1; ctx.restore();
+      }
       ctx.save(); ctx.translate(CX, CY - 8); ctx.rotate(angle);
       const bg = ctx.createLinearGradient(0, -13, 0, 13);
       bg.addColorStop(0, shade(cn.barrel, .3)); bg.addColorStop(1, shade(cn.barrel, -.35));
@@ -1391,7 +1417,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       const reach = Math.min(1, b.t / .35), fade = b.t < .5 ? 1 : Math.max(0, 1 - (b.t - .5) / .4);
       ctx.globalAlpha = fade; ctx.lineCap = "round"; ctx.shadowColor = "#fff3a0"; ctx.shadowBlur = 24;
       for (const sd of [-1, 1]) {
-        const ex = OWL.x + sd * 17, ey = OWL.y - 14, tx = ex + (b.x - ex) * reach, ty = ey + (b.y - ey) * reach;
+        const ex = OWL.x + sd * 17, ey = OWL.y - 14, tx = ex + (b.peg.x - ex) * reach, ty = ey + (b.peg.y - ey) * reach;
         ctx.strokeStyle = "rgba(255,243,160,.55)"; ctx.lineWidth = 12; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(tx, ty); ctx.stroke();
         ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(tx, ty); ctx.stroke();
       }
@@ -1420,7 +1446,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     requestAnimationFrame(loop);
   }
 
-  window.__gk = { get pegs() { return pegs; }, get phase() { return phase; }, get power() { return power; }, get mistakes() { return mistakes; }, get level() { return level; }, get prob() { return prob; }, fire, useOwlPower, startLevel };
+  window.__gk = { get pegs() { return pegs; }, get angle() { return angle; }, shoot, aimAt, get phase() { return phase; }, get power() { return power; }, get mistakes() { return mistakes; }, get level() { return level; }, get prob() { return prob; }, fire, useOwlPower, startLevel };
 
   let started = false;
   function start(data) {
