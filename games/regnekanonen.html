@@ -135,7 +135,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     <div class="shop" id="shop" hidden></div>
   </div>
   <div class="chips" id="chips"></div>
-  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Fra level 3 er der forhindringer, som svarkuglerne kan gemme sig bag. Din kugle hopper af dem. Hopper kuglen på en væg eller en forhindring, før den rammer rigtigt, får du 25 bonuspoint for et bandeskud. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
+  <p class="help">Sigt med musen, og klik for at skyde. Kuglerne med svar bevæger sig, så sigt lidt foran dem. Skyder du forbi, sker der ikke noget. Fra level 3 er der hylder, som svarkuglerne kan køre ind under. Skyd via væggen for at ramme en kugle under en hylde. Hopper kuglen på en væg eller en forhindring, før den rammer rigtigt, får du 25 bonuspoint for et bandeskud. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
 </div>
 
 <script>
@@ -176,7 +176,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   const sym = op => op === "-" ? "−" : op;
   const ptext = p => `${p.a} ${sym(p.op)} ${p.b}`;
   const NEW_OP = {
-    3: "Pas på! Nu er der forhindringer. Svarkuglerne kan gemme sig bag dem, og din kugle hopper af dem.",
+    3: "Pas på! Nu er der hylder. Svarkuglerne kan køre ind under dem, så prøv at skyde via væggen!",
     4: "Nu kommer minus! Når man trækker fra, bliver tallet mindre.",
     7: "Tiervenner! To tal, der tilsammen giver 10.",
     9: "Nu går vi over 10. Tip: lav 10 først, og læg resten til.",
@@ -192,9 +192,11 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   let particles = [], floats = [], phase = "play", angle = Math.PI / 2, time = 0, betweenT = 0, signPop = 1;
   let timeScale = 1, zoom = { x: CX, y: H / 2, z: 1, target: 1 }, hover = -1, clearT = 0, clearQueue = [], fireworkT = 0;
   let power = 0, rings = [], shake = 0, beams = [], pt = 0;
-  const SHOT_SPEED = 950, LANES = [250, 370, 490], LANE_X0 = BX0 + PEG_R + 4, LANE_W = (BX1 - BX0) - 2 * PEG_R - 8, PEG_D = 2 * PEG_R + 4;
+  const SHOT_SPEED = 950, LANES = [252, 392, 524], LANE_X0 = BX0 + PEG_R + 4, LANE_W = (BX1 - BX0) - 2 * PEG_R - 8, PEG_D = 2 * PEG_R + 4;
   let lanes = [], obstacles = [];
-  const OB_W = 150, OB_H = 100;
+  const OB_W = 190, OB_H = 30;
+  // shelves hang just above a lane, so answer balls slide underneath (never through) them
+  const SHELF_Y = [LANES[0] - 72, LANES[1] - 72, LANES[2] - 70];
   const obstacleCount = () => level < 3 ? 0 : level < 8 ? 1 : 2;
   // the obstacle every shot can hit: side walls, a ceiling and the bushes (expanded by the ball radius)
   function rayCast(sx, sy, dx, dy) {
@@ -214,8 +216,8 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   function placeObstacles() {
     obstacles = [];
     for (let n = obstacleCount(), tries = 0; obstacles.length < n && tries < 200; tries++) {
-      const o = { x: BX0 + 140 + Math.random() * (BX1 - BX0 - 280), y: LANES[Math.random() * LANES.length | 0], w: OB_W, h: OB_H, seed: Math.random() * 100, hitT: 0 };
-      if (Math.abs(o.x - CX) < 90 && o.y === LANES[0]) continue; // keep the straight-down shot open
+      const o = { x: BX0 + 150 + Math.random() * (BX1 - BX0 - 300), y: SHELF_Y[Math.random() * SHELF_Y.length | 0], w: OB_W, h: OB_H, seed: Math.random() * 100, hitT: 0 };
+      if (Math.abs(o.x - CX) < OB_W / 2 + 30 && o.y === SHELF_Y[0]) continue; // keep the straight-down shot open
       if (obstacles.every(q => Math.abs(q.x - o.x) > 300 || q.y !== o.y)) obstacles.push(o);
     }
   }
@@ -1248,36 +1250,42 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     });
   }
 
-  // themed obstacles the answer balls slide behind: bush, coral rock, candy cloud, asteroid
-  const OB_STYLE = { nat: ["bush", "#3f7f52"], jungle: ["bush", "#2f9e44"], hav: ["rock", "#e0705f"], slik: ["cloud", "#ffd3ec"], rum: ["rock", "#6e6796"] };
+  // themed shelves the answer balls slide under: mossy log, jungle log, coral ledge, chocolate bar, space girder
+  const OB_STYLE = { nat: ["log", "#8a5a33"], jungle: ["log", "#7a4e26"], hav: ["coral", "#e0705f"], slik: ["choc", "#6b3a1f"], rum: ["metal", "#8d93b8"] };
   function drawObstacle(o) {
     const [kind, col] = OB_STYLE[save.eq.theme] || OB_STYLE.nat;
-    const wob = o.hitT > 0 ? Math.sin(time * 50) * 4 * (o.hitT / .35) : 0;
-    ctx.save(); ctx.translate(o.x + wob, o.y);
-    ctx.fillStyle = "rgba(0,0,0,.28)"; ctx.beginPath(); ctx.ellipse(4, o.h / 2 - 2, o.w / 2 + 4, 12, 0, 0, 6.28); ctx.fill();
-    if (kind === "rock") {
-      const g = ctx.createLinearGradient(0, -o.h / 2, 0, o.h / 2); g.addColorStop(0, shade(col, .3)); g.addColorStop(1, shade(col, -.35));
-      ctx.fillStyle = g; ctx.strokeStyle = shade(col, -.55); ctx.lineWidth = 4;
-      ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(-o.w / 2, -o.h / 2, o.w, o.h, 34); else ctx.rect(-o.w / 2, -o.h / 2, o.w, o.h); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = shade(col, -.25);
-      [[-34, -12, 13], [22, 10, 16], [40, -22, 8], [-12, 24, 9]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill(); });
-      ctx.fillStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.ellipse(-20, -o.h / 2 + 16, 34, 8, -.1, 0, 6.28); ctx.fill();
+    const wob = o.hitT > 0 ? Math.sin(time * 50) * 3 * (o.hitT / .35) : 0, w = o.w, h = o.h;
+    ctx.save(); ctx.translate(o.x, o.y + wob);
+    ctx.fillStyle = "rgba(0,0,0,.25)"; ctx.beginPath(); ctx.ellipse(3, h / 2 + 6, w / 2, 7, 0, 0, 6.28); ctx.fill();
+    const rr = (x, y, ww, hh, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, ww, hh, r); else ctx.rect(x, y, ww, hh); };
+    const g = ctx.createLinearGradient(0, -h / 2, 0, h / 2); g.addColorStop(0, shade(col, .3)); g.addColorStop(1, shade(col, -.35));
+    ctx.fillStyle = g; ctx.strokeStyle = shade(col, -.6); ctx.lineWidth = 3;
+    if (kind === "log") {
+      rr(-w / 2, -h / 2, w, h, h / 2); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = shade(col, -.3); ctx.lineWidth = 2;
+      for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.moveTo(-w / 2 + 24, k * 7); ctx.lineTo(w / 2 - 30, k * 7 + 2); ctx.stroke(); }
+      ctx.fillStyle = shade(col, .45); ctx.beginPath(); ctx.ellipse(w / 2 - 8, 0, 8, h / 2 - 2, 0, 0, 6.28); ctx.fill();
+      ctx.strokeStyle = shade(col, -.2); ctx.beginPath(); ctx.ellipse(w / 2 - 8, 0, 4, h / 4, 0, 0, 6.28); ctx.stroke();
+      // moss / leaves on top
+      ctx.fillStyle = save.eq.theme === "jungle" ? "#3fbf5a" : "#5fae6a";
+      for (let k = 0; k < 7; k++) { ctx.beginPath(); ctx.ellipse(-w / 2 + 22 + k * 24, -h / 2 + 1, 13, 6, Math.sin(o.seed + k) * .4, 0, 6.28); ctx.fill(); }
+      if (save.eq.theme === "jungle") { ctx.strokeStyle = "#2f9e44"; ctx.lineWidth = 3; for (const vx of [-50, 30]) { ctx.beginPath(); ctx.moveTo(vx, h / 2 - 2); ctx.quadraticCurveTo(vx + 6 + Math.sin(time * 2 + vx) * 4, h / 2 + 14, vx + 2, h / 2 + 24); ctx.stroke(); } }
+    } else if (kind === "coral") {
+      rr(-w / 2, -h / 2, w, h, 12); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = shade(col, -.25); [[-60, 0, 6], [-20, -4, 5], [25, 3, 7], [62, -3, 5]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill(); });
+      ctx.fillStyle = "#ffb3c7"; for (let k = 0; k < 5; k++) { ctx.beginPath(); ctx.arc(-w / 2 + 26 + k * 34, -h / 2, 7, Math.PI, 0); ctx.fill(); }
+    } else if (kind === "choc") {
+      rr(-w / 2, -h / 2, w, h, 6); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = shade(col, -.45); ctx.lineWidth = 2;
+      for (let k = 1; k < 6; k++) { const x = -w / 2 + k * w / 6; ctx.beginPath(); ctx.moveTo(x, -h / 2 + 4); ctx.lineTo(x, h / 2 - 4); ctx.stroke(); }
+      ctx.fillStyle = "rgba(255,255,255,.2)"; for (let k = 0; k < 6; k++) ctx.fillRect(-w / 2 + k * w / 6 + 5, -h / 2 + 5, w / 6 - 12, 4);
+      ctx.fillStyle = "#ff4d6d"; rr(-w / 2 - 4, -h / 2 - 3, 34, h + 6, 4); ctx.fill(); ctx.fillStyle = "#ffd23f"; ctx.fillRect(-w / 2 + 10, -h / 2 - 3, 6, h + 6);
     } else {
-      // bush / cloud: a lumpy blob of circles filling the box
-      const blobs = [[-50, 12, 30], [-22, -18, 34], [16, -24, 34], [48, -2, 30], [30, 22, 28], [-14, 20, 32], [52, 24, 22], [-56, 30, 20]];
-      ctx.fillStyle = shade(col, kind === "cloud" ? -.18 : -.45);
-      blobs.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y + 3, r + 4, 0, 6.28); ctx.fill(); });
-      const g = ctx.createLinearGradient(0, -o.h / 2, 0, o.h / 2); g.addColorStop(0, shade(col, .25)); g.addColorStop(1, shade(col, -.2));
-      ctx.fillStyle = g; blobs.forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill(); });
-      ctx.fillStyle = kind === "cloud" ? "rgba(255,255,255,.7)" : "rgba(255,255,255,.18)";
-      [[-22, -26, 12], [16, -32, 11], [48, -10, 8]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.ellipse(x, y, r, r * .6, -.3, 0, 6.28); ctx.fill(); });
-      if (kind === "bush") {
-        ctx.fillStyle = "#ff6fa8"; [[-36, 0], [8, -8], [40, 14], [-8, 30]].forEach(([x, y], i) => { ctx.beginPath(); ctx.arc(x + Math.sin(o.seed + i) * 6, y, 5, 0, 6.28); ctx.fill(); });
-        ctx.fillStyle = "#ffe066"; [[-36, 0], [8, -8], [40, 14], [-8, 30]].forEach(([x, y], i) => { ctx.beginPath(); ctx.arc(x + Math.sin(o.seed + i) * 6, y, 2, 0, 6.28); ctx.fill(); });
-      } else {
-        ctx.fillStyle = "#ff4d6d"; [[-30, 4], [20, 14], [44, -6]].forEach(([x, y]) => ctx.fillRect(x, y, 9, 3));
-        ctx.fillStyle = "#3ee6c4"; [[-6, -10], [30, 28], [-44, 26]].forEach(([x, y]) => ctx.fillRect(x, y, 9, 3));
-      }
+      rr(-w / 2, -h / 2, w, h, 5); ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = shade(col, -.4); ctx.lineWidth = 2; ctx.beginPath();
+      for (let x = -w / 2 + 6; x < w / 2 - 20; x += 22) { ctx.moveTo(x, h / 2 - 4); ctx.lineTo(x + 11, -h / 2 + 4); ctx.lineTo(x + 22, h / 2 - 4); }
+      ctx.stroke();
+      ctx.fillStyle = Math.sin(time * 4 + o.seed) > 0 ? "#ff5f5f" : "#7af5ff"; ctx.beginPath(); ctx.arc(w / 2 - 10, -h / 2 + 2, 4, 0, 6.28); ctx.fill();
     }
     ctx.restore();
   }
@@ -1489,8 +1497,8 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       if (shake > 0) ctx.translate(Math.sin(time * 70) * 9 * shake, Math.cos(time * 63) * 7 * shake);
       drawSigns();
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      for (const p of pegs) drawPeg(p, th);
       for (const o of obstacles) drawObstacle(o);
+      for (const p of pegs) drawPeg(p, th);
       drawBucket();
       if (phase === "play" && !shopOpen) {
         // aim guide: dots out of the barrel up to the first wall or bush it will bounce off,
