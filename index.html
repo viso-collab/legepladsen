@@ -40,11 +40,23 @@ h1 span { display: inline-block; transition: transform .25s cubic-bezier(.3,1.6,
 h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
 .lead { margin: 0; color: var(--muted); font-size: 17px; max-width: 46ch; line-height: 1.5; text-wrap: balance; }
 
-/* flex-wrap so the last, unfilled row sits in the middle */
-.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-.grid > .tile { flex: 0 0 calc((100% - 40px) / 3); min-width: 0; }
-@media (max-width: 980px) { .grid > .tile { flex-basis: calc((100% - 20px) / 2); } }
-@media (max-width: 660px) { .grid > .tile { flex-basis: 100%; } }
+/* pyramid: 1 tile on top, 2 in the middle, 3 at the bottom (6-column grid, each tile spans 2) */
+.grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 20px; }
+.grid > .tile { grid-column: span 2; min-width: 0; }
+.grid > .tile:nth-child(1) { grid-column: 3 / span 2; }
+.grid > .tile:nth-child(2) { grid-column: 2 / span 2; }
+.grid > .tile:nth-child(3) { grid-column: 4 / span 2; }
+@media (max-width: 980px) {
+  .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .grid > .tile:nth-child(1) { grid-column: 2 / span 2; }
+  .grid > .tile:nth-child(2) { grid-column: 1 / span 2; }
+  .grid > .tile:nth-child(3) { grid-column: 3 / span 2; }
+  .grid > .tile:nth-child(6) { grid-column: 2 / span 2; }
+}
+@media (max-width: 660px) {
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .grid > .tile:nth-child(n) { grid-column: auto; }
+}
 .tile {
   all: unset; box-sizing: border-box; cursor: pointer;
   display: flex; flex-direction: column; border-radius: 22px; overflow: hidden;
@@ -148,20 +160,12 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
     <p class="lead">Seks små spil, bygget til at spilde tid på den gode måde. Vælg et og gå i gang.</p>
   </header>
   <section class="grid" aria-label="Spil">
-    <button class="tile t-mouse" type="button" data-game="musefelt">
-      <span class="art"><canvas data-art="mouse" aria-hidden="true"></canvas></span>
+    <button class="tile t-tumult" type="button" data-game="tumult">
+      <span class="art"><canvas data-art="tumult" aria-hidden="true"></canvas></span>
       <span class="info">
-        <span class="name">Musefelt</span>
-        <span class="desc">Seks levende lærreder der reagerer på din mus. Fang ildfluer, skyd fisk afsted og pop bobleplast.</span>
-        <span class="tags"><i>Mus eller touch</i><i>6 tilstande</i></span>
-      </span>
-    </button>
-    <button class="tile t-pig" type="button" data-game="piggy-smash">
-      <span class="art"><canvas data-art="pig" aria-hidden="true"></canvas></span>
-      <span class="info">
-        <span class="name">Piggy Smash</span>
-        <span class="desc">Smash sparegrise i ørkenen, find våben i kister og byg dit skill tree. Du har tre liv pr. run. På engelsk.</span>
-        <span class="tags"><i>Mus eller touch</i><i>15 våben</i><i>Gemmer fremskridt</i></span>
+        <span class="name">Tumult</span>
+        <span class="desc">Platform-kampspil med 8 figurer, combos og magi. Spil 1 mod 1 eller 2 mod 2 på svævende øer, mod CPU eller vennerne. På engelsk.</span>
+        <span class="tags"><i>Tastatur eller controller</i><i>8 figurer</i><i>Online</i><i>2v2</i></span>
       </span>
     </button>
     <button class="tile t-kart" type="button" data-game="kart-kaos">
@@ -172,20 +176,28 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
         <span class="tags"><i>Tastatur</i><i>4 baner</i><i>Online</i><i>Leaderboard</i></span>
       </span>
     </button>
+    <button class="tile t-pig" type="button" data-game="piggy-smash">
+      <span class="art"><canvas data-art="pig" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Piggy Smash</span>
+        <span class="desc">Smash sparegrise i ørkenen, find våben i kister og byg dit skill tree. Du har tre liv pr. run. På engelsk.</span>
+        <span class="tags"><i>Mus eller touch</i><i>15 våben</i><i>Gemmer fremskridt</i></span>
+      </span>
+    </button>
+    <button class="tile t-mouse" type="button" data-game="musefelt">
+      <span class="art"><canvas data-art="mouse" aria-hidden="true"></canvas></span>
+      <span class="info">
+        <span class="name">Musefelt</span>
+        <span class="desc">Seks levende lærreder der reagerer på din mus. Fang ildfluer, skyd fisk afsted og pop bobleplast.</span>
+        <span class="tags"><i>Mus eller touch</i><i>6 tilstande</i></span>
+      </span>
+    </button>
     <button class="tile t-regne" type="button" data-game="regnekanonen">
       <span class="art"><canvas data-art="regne" aria-hidden="true"></canvas></span>
       <span class="info">
         <span class="name">Regnekanonen</span>
         <span class="desc">Skyd kuglen med det rigtige svar i en eventyrskov. Uglen Professor Hu hjælper dig gennem 20 levels i plus, minus og lidt gange.</span>
         <span class="tags"><i>Mus eller touch</i><i>7–8 år</i><i>20 levels</i><i>Butik</i></span>
-      </span>
-    </button>
-    <button class="tile t-tumult" type="button" data-game="tumult">
-      <span class="art"><canvas data-art="tumult" aria-hidden="true"></canvas></span>
-      <span class="info">
-        <span class="name">Tumult</span>
-        <span class="desc">Platform-kampspil med 8 figurer, combos og magi. Spil 1 mod 1 eller 2 mod 2 på svævende øer, mod CPU eller vennerne. På engelsk.</span>
-        <span class="tags"><i>Tastatur eller controller</i><i>8 figurer</i><i>Online</i><i>2v2</i></span>
       </span>
     </button>
     <button class="tile t-spike" type="button" data-game="spike-lane">
@@ -215,12 +227,12 @@ footer { text-align: center; color: var(--muted); font-size: 13px; display: flex
 <script>
 (() => {
   const GAMES = {
-    'musefelt': { name: 'Musefelt', src: 'games/musefelt.html' },
-    'piggy-smash': { name: 'Piggy Smash', src: 'games/piggy-smash.html' },
+    'tumult': { name: 'Tumult', src: 'https://viso-collab.github.io/tumult/' },   // always the newest version, with online
     'kart-kaos': { name: 'Kart Kaos', src: 'games/kart-kaos.html' },
+    'piggy-smash': { name: 'Piggy Smash', src: 'games/piggy-smash.html' },
+    'musefelt': { name: 'Musefelt', src: 'games/musefelt.html' },
     'regnekanonen': { name: 'Regnekanonen', src: 'games/regnekanonen.html' },
     'spike-lane': { name: 'Spike Lane', src: 'games/spike-lane.html' },
-    'tumult': { name: 'Tumult', src: 'https://viso-collab.github.io/tumult/' },   // always the newest version, with online
   };
   const home = document.getElementById('home'), player = document.getElementById('player');
   const frame = document.getElementById('frame'), nameEl = document.getElementById('gameName');
