@@ -118,7 +118,6 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
 </style>
 </head>
 <body>
-
 <canvas id="bgc" aria-hidden="true"></canvas>
 <div class="app">
   <div class="bar">
@@ -136,7 +135,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     <div class="shop" id="shop" hidden></div>
   </div>
   <div class="chips" id="chips"></div>
-  <p class="help">Klik på kuglen med det rigtige svar, så skyder kanonen på den. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
+  <p class="help">Klik på kuglen med det rigtige svar, så skyder kanonen på den. Tre forkerte, og du starter levelet forfra. Hver rigtig fylder uglens månekugle, og når den er fuld, kan du klikke på uglen eller UGLESYN. Så fjerner uglen to forkerte svar. Har du kun ét liv tilbage, hjælper uglen af sig selv. Rammer kuglen spanden, får du 25 bonusmønter. <button class="mute" id="mute">Lyd: til</button></p>
 </div>
 
 <script>
@@ -145,7 +144,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   const BX0 = 262, BX1 = 1088, CX = (BX0 + BX1) / 2, CY = 54;
   const G = 1000, BALL_R = 10, PEG_R = 36, BUCKET_Y = 614, BUCKET_W = 100;
   const OWL = { x: 128, y: 318 };
-  const POWER_MAX = 3;
+  const POWER_MAX = 2;
   const cv = document.getElementById("c"), ctx = cv.getContext("2d");
   const $ = id => document.getElementById(id);
 
@@ -191,7 +190,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   let pegs = [], shot = null, fallers = [], streak = 0, mistakes = 0, score = 0;
   let particles = [], floats = [], phase = "play", angle = Math.PI / 2, time = 0, betweenT = 0, signPop = 1;
   let timeScale = 1, zoom = { x: CX, y: H / 2, z: 1, target: 1 }, hover = -1, clearT = 0, clearQueue = [], fireworkT = 0;
-  let power = 0, rings = [], shake = 0;
+  let power = 0, rings = [], shake = 0, beams = [];
   const owl = { mood: "idle", moodT: 0, blinkT: 2, hop: 0, lookX: 0, lookY: 0 };
   let speech = { text: "", t: 0 };
   let best = {};
@@ -379,7 +378,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     pegs.forEach((p, i) => { if (clickable(p)) { const d = Math.hypot(p.x - px, p.y - py); if (d < bd) { bd = d; bi = i; } } });
     return bi;
   }
-  const onOwl = (px, py) => Math.hypot(px - OWL.x, py - OWL.y) < 80;
+  const onOwl = (px, py) => Math.hypot(px - OWL.x, py - OWL.y) < 80 || Math.hypot(px - OWL.x, py - 560) < 52;
   function fire(i) {
     const p = pegs[i];
     if (phase !== "play" || shopOpen || !p || !clickable(p)) return;
@@ -389,14 +388,19 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     tone(260, .15, "triangle", .18, 2.4);
     burst(CX + Math.cos(angle) * 50, CY + Math.sin(angle) * 50, "#ffffff", 8, 120);
   }
-  function useOwlPower() {
+  function useOwlPower(auto) {
     if (phase !== "play") return;
     if (power < POWER_MAX) { say(`Svar rigtigt ${POWER_MAX - power} gang${POWER_MAX - power > 1 ? "e" : ""} mere, så er min månekugle fuld.`, 3); return; }
     const wrongs = shuffle(pegs.filter(p => !p.ok && clickable(p))).slice(0, 2);
     if (!wrongs.length) { say("Der er ikke flere forkerte svar at fjerne!", 3); return; }
     power = 0;
-    wrongs.forEach(p => { p.dying = .5; burst(p.x, p.y, "#fff3a0", 24, 200); });
-    say("Uglesyn! Jeg har fjernet to forkerte svar.", 4);
+    // owl eyes shoot moonbeams at the wrong balls, which vanish when the beam lands
+    wrongs.forEach((p, k) => {
+      beams.push({ x: p.x, y: p.y, t: -k * .18 });
+      setTimeout(() => { if (p.alive && !p.dying) { p.dying = .5; burst(p.x, p.y, "#fff3a0", 28, 240); tone(1300 + k * 300, .2, "sine", .1); } }, 380 + k * 180);
+    });
+    rings.push({ x: OWL.x, y: OWL.y, t: 0 }); shake = .25;
+    say(auto ? "Du har kun ét liv tilbage, så jeg hjælper! Uglesyn fjerner to forkerte svar." : "Uglesyn! Mine måneøjne fjerner to forkerte svar.", 4);
     mood("happy", 1.4);
     [523, 784, 1047, 1568].forEach((f, i) => setTimeout(() => tone(f, .3, "sine", .12), i * 90));
     burst(OWL.x, OWL.y - 20, "#fff3a0", 30, 240);
@@ -441,7 +445,7 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       p.lit = true; p.litT = 0; streak++;
       const pts = 10 * streak; score += pts; addCoins(pts);
       solved[pi] = `${ptext(prob)} = ${prob.ans}`;
-      if (power < POWER_MAX) { power++; if (power === POWER_MAX) { say("Min månekugle er fuld! Klik på mig, så fjerner jeg to forkerte svar.", 5); tone(1047, .3, "sine", .12); } }
+      if (power < POWER_MAX) { power++; if (power === POWER_MAX) { say("Min månekugle er fuld! Klik på mig eller på UGLESYN, så fjerner jeg to forkerte svar.", 5); tone(1047, .3, "sine", .12); } }
       burst(p.x, p.y, "#ffb21f", 16);
       floatText(p.x, p.y - 50, solved[pi], "#fff8ec", 26);
       floatText(p.x, p.y + 52, streak > 1 ? `+${pts}  (${streak} i træk!)` : `+${pts}`, "#ffd23f", 18);
@@ -466,7 +470,11 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       mood("sad", 1.5);
       tone(150, .25, "square", .08, .6);
       if (mistakes >= 3) { phase = "lost"; setTimeout(() => finish(false), 1100); }
-      else phase = "play";
+      else {
+        phase = "play";
+        // automatic rescue: on the last life the owl uses a full moon orb by itself
+        if (mistakes === 2 && power >= POWER_MAX) setTimeout(() => useOwlPower(true), 1600);
+      }
     }
   }
 
@@ -527,6 +535,8 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     shake = Math.max(0, shake - dt);
     for (const r of rings) r.t += dt;
     rings = rings.filter(r => r.t < 1);
+    for (const b of beams) b.t += dt;
+    beams = beams.filter(b => b.t < .9);
     for (const p of particles) {
       if (p.conf) { p.vx += Math.sin(time * 3 + p.rot) * 20 * dt; p.rot += p.spin * dt; }
       else p.vy += 380 * dt;
@@ -1308,8 +1318,12 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
     ctx.beginPath(); ctx.arc(ox, oy, r, 0, 6.28); ctx.stroke(); ctx.shadowBlur = 0;
     ctx.font = '800 18px "Baloo 2", sans-serif';
     ctx.strokeStyle = "rgba(10,8,30,.8)"; ctx.lineWidth = 4;
-    const label = power >= POWER_MAX ? "KLAR!" : `${power}/${POWER_MAX}`;
-    ctx.strokeText(label, ox, oy + 2); ctx.fillStyle = "#fff8ec"; ctx.fillText(label, ox, oy + 2);
+    const label = power >= POWER_MAX ? "KLIK!" : `${power}/${POWER_MAX}`;
+    const ps = power >= POWER_MAX ? 1 + Math.sin(time * 6) * .12 : 1;
+    ctx.save(); ctx.translate(ox, oy + 2); ctx.scale(ps, ps);
+    ctx.strokeText(label, 0, 0); ctx.fillStyle = power >= POWER_MAX ? "#3b2a00" : "#fff8ec";
+    if (power >= POWER_MAX) { ctx.strokeStyle = "#fff8ec"; ctx.strokeText(label, 0, 0); }
+    ctx.fillText(label, 0, 0); ctx.restore();
   }
 
   function draw() {
@@ -1372,6 +1386,17 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
       ctx.globalAlpha = 1;
     } finally { ctx.restore(); }
     drawFrame(cn);
+    for (const b of beams) {
+      if (b.t <= 0) continue;
+      const reach = Math.min(1, b.t / .35), fade = b.t < .5 ? 1 : Math.max(0, 1 - (b.t - .5) / .4);
+      ctx.globalAlpha = fade; ctx.lineCap = "round"; ctx.shadowColor = "#fff3a0"; ctx.shadowBlur = 24;
+      for (const sd of [-1, 1]) {
+        const ex = OWL.x + sd * 17, ey = OWL.y - 14, tx = ex + (b.x - ex) * reach, ty = ey + (b.y - ey) * reach;
+        ctx.strokeStyle = "rgba(255,243,160,.55)"; ctx.lineWidth = 12; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(tx, ty); ctx.stroke();
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(tx, ty); ctx.stroke();
+      }
+      ctx.shadowBlur = 0; ctx.lineCap = "butt"; ctx.globalAlpha = 1;
+    }
     drawSpeech();
     if (phase === "clear" && clearT > .3) {
       ctx.globalAlpha = Math.min(1, (clearT - .3) * 2);
@@ -1408,5 +1433,6 @@ canvas#c { width: 100%; height: 100%; display: block; border-radius: 20px; touch
   start(window.claude?.hot?.data ?? {});
 })();
 </script>
+
 </body>
 </html>
