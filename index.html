@@ -40,7 +40,11 @@ h1 span { display: inline-block; transition: transform .25s cubic-bezier(.3,1.6,
 h1 span:hover { transform: translateY(-8px) rotate(-6deg); }
 .lead { margin: 0; color: var(--muted); font-size: 17px; max-width: 46ch; line-height: 1.5; text-wrap: balance; }
 
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 20px; }
+/* flex-wrap so the last, unfilled row sits in the middle */
+.grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+.grid > .tile { flex: 0 0 calc((100% - 40px) / 3); min-width: 0; }
+@media (max-width: 980px) { .grid > .tile { flex-basis: calc((100% - 20px) / 2); } }
+@media (max-width: 660px) { .grid > .tile { flex-basis: 100%; } }
 .tile {
   all: unset; box-sizing: border-box; cursor: pointer;
   display: flex; flex-direction: column; border-radius: 22px; overflow: hidden;
